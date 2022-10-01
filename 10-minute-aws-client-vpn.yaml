@@ -3,8 +3,8 @@ AWSTemplateFormatVersion: "2010-09-09"
 
 Description: |-
   AWS Client VPN
-  github.com/sqlxpert/10-minute-aws-client-vpn
-  GPLv3, Copyright Paul Marcelin
+  
+  github.com/sqlxpert/10-minute-aws-client-vpn  GPLv3  Copyright Paul Marcelin
 
 Parameters:
 
