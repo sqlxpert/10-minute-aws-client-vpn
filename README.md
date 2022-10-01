@@ -1,5 +1,7 @@
 # 10-Minute AWS Client VPN
 
+[Documentation coming soon!]
+
 ## Goals
 
 ## Installation
