@@ -2,8 +2,8 @@
 
 ## Goals
 
-This CloudFormation template will help you set up an AWS-managed VPN and run
-it for as little as $1 per day!
+This CloudFormation template will help you set up an AWS-managed VPN in about
+10 minutes and operate it for as little as $1 per day!
 
 Today, security experts discourage relying mainly on the strength of the
 perimeter around your private network. Nevertheless, in some scenarios,
@@ -75,9 +75,11 @@ transfer, and other types of charges may also apply.
    [Step 7 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config)
    , which helps you download and prepare the VPN client configuration file.
 
-   You must log in to the VPC Console to download the file. The self-service
-   portal is not available for VPNs that rely on mutual, certificate-based
-   authentication.
+   You must find your VPN in the list of
+   [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
+   in the VPC Console and download the configuration file from there. (No
+   self-service portal page is available for a VPN that relies on mutual
+   certificate-based authentication.)
 
    When inserting the certificate and key into the configuration file, copy
    only the portion of each that begins with `-----BEGIN CERTIFICATE-----` and
