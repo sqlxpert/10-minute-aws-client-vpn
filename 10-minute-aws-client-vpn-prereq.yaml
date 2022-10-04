@@ -1,0 +1,242 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: |-
+  Deployment role for
+
+  github.com/sqlxpert/10-minute-aws-client-vpn  GPLv3  Copyright Paul Marcelin
+
+Parameters:
+
+  PlaceholderHelp:
+    Type: String
+    Default: "https://github.com/sqlxpert/10-minute-aws-client-vpn"
+
+  StackNameBase:
+    Type: String
+    Description: >-
+      When using the DeploymentRole provided by this stack, you MUST include
+      this string in the name of any VPN stack that you create. For security,
+      no other CloudFormation stack or StackSet's name should include this
+      string. You may add prefixes and suffixes to your future stack's name.
+      For example, if you set this to "CVpn", you can alternate between a
+      "CVpn1" stack and a "CVpn2" stack for blue/green deployment of updates,
+      or you can "TestCVpn" stack marked for testing.
+    Default: "CVpn"
+
+Metadata:
+
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Essentials
+        Parameters:
+          - PlaceholderHelp
+          - StackNameBase
+    ParameterLabels:
+      PlaceholderHelp:
+        default: For help with this stack, see
+      StackNameBase:
+        default: >-
+          Name of future stack
+
+Resources:
+
+  DeploymentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: >-
+        Resources in Client VPN CloudFormation stack: create, update, delete
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: { Service: cloudformation.amazonaws.com }
+            Action: sts:AssumeRole
+      # In-line policies apply only to this role, which, in turn, can only be
+      # assumed by CloudFormation. Separate, "managed" policies could be
+      # attached to other roles or users, allowing permission escalation.
+      # Administrator should restrict iam:PassRole to prevent use of this role
+      # with arbitrary CloudFormation stacks.
+      Policies:
+        - PolicyName: ClientVpnCloudFormationStackDeploy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:DeleteLogGroup
+                  - logs:PutRetentionPolicy
+                  - logs:DeleteRetentionPolicy
+                  - logs:TagLogGroup
+                  - logs:CreateLogStream
+                  - logs:DescribeLogStreams
+                Resource: !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group:*${StackNameBase}*"
+              - Effect: Allow
+                Action:
+                  - logs:DeleteLogStream
+                Resource: !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group:*${StackNameBase}*"
+              - Effect: Allow
+                Action:
+                  - logs:DescribeLogGroups
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - kms:ListKeys
+                  - kms:ListAliases
+                  - kms:DescribeKey
+                Resource: "*"
+
+                # ec2:CreateAction condition not present
+              - Effect: Allow
+                Action:
+                  - ec2:CreateTags
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
+                Condition:
+                  StringLike:
+                    aws:RequestTag/aws:cloudformation:stack-name: !Sub "*${StackNameBase}*"
+              - Effect: Allow
+                Action:
+                  - ec2:CreateTags
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
+                Condition:
+                  StringLike:
+                    aws:ResourceTag/aws:cloudformation:stack-name: !Sub "*${StackNameBase}*"
+              - Sid: WarningAppliesToExistingResourcesNotOnlyNew
+                Effect: Allow
+                Action:
+                  - ec2:CreateTags
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group-rule/*"
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:client-vpn-endpoint/*"
+                # No standard CloudFormation tags (stack-name, etc.)
+
+              - Effect: Allow
+                Action:
+                  - ec2:CreateSecurityGroup
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
+                # No aws:RequestTag/TagKey conditions present
+              - Effect: Allow
+                Action:
+                  - ec2:CreateSecurityGroup
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:vpc/*"
+              - Effect: Allow
+                Action:
+                  - ec2:UpdateSecurityGroupRuleDescriptionsIngress
+                  - ec2:UpdateSecurityGroupRuleDescriptionsEgress
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:AuthorizeSecurityGroupEgress
+                  - ec2:ModifySecurityGroupRules
+                  - ec2:RevokeSecurityGroupIngress
+                  - ec2:RevokeSecurityGroupEgress
+                  - ec2:DeleteSecurityGroup
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
+                Condition:
+                  StringLike:
+                    aws:ResourceTag/aws:cloudformation:stack-name: !Sub "*${StackNameBase}*"
+              - Effect: Allow
+                Action:
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:AuthorizeSecurityGroupEgress
+                  - ec2:ModifySecurityGroupRules
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group-rule/*"
+                # CloudFormation cannot yet tag security group rules, as of 2022-10
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeSecurityGroup*
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeVpcs
+                Resource: "*"
+
+              - Effect: Allow
+                Action:
+                  - ssm:AddTagsToResource
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*"
+                Condition:
+                  StringLike:
+                    aws:RequestTag/aws:cloudformation:stack-name: !Sub "*${StackNameBase}*"
+              - Sid: WarningAppliesToAllParameters
+                Effect: Allow
+                Action:
+                  - ssm:PutParameter
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*"
+              - Effect: Allow
+                Action:
+                  - ssm:LabelParameterVersion
+                  - ssm:DeleteParameter
+                  - ssm:DeleteParameters
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*"
+                Condition:
+                  StringLike:
+                    aws:ResourceTag/aws:cloudformation:stack-name: !Sub "*${StackNameBase}*"
+              - Effect: Allow
+                Action:
+                  - ssm:DescribeParameters
+                Resource: "*"
+
+              # Meaningless ID numbers in AWS Client VPN Endpoint ARNs, and
+              # lack of standard CloudFormation tags (stack-name, etc.),
+              # prevents restricting scope of deployment role to just the
+              # endpoint defined in the future stack
+              - Effect: Allow
+                Action:
+                  - ec2:CreateClientVpnEndpoint
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:client-vpn-endpoint/*"
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:subnet/*"
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:vpc/*"
+              - Effect: Allow
+                Action:
+                  - ec2:ModifyClientVpnEndpoint
+                  - ec2:ApplySecurityGroupsToClientVpnTargetNetwork
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:client-vpn-endpoint/*"
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:vpc/*"
+              - Effect: Allow
+                Action:
+                  - ec2:AssociateClientVpnTargetNetwork
+                  - ec2:CreateClientVpnRoute
+                  - ec2:DeleteClientVpnRoute
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:client-vpn-endpoint/*"
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:subnet/*"
+              - Effect: Allow
+                Action:
+                  - ec2:AuthorizeClientVpnIngress
+                  - ec2:RevokeClientVpnIngress
+                  - ec2:DisassociateClientVpnTargetNetwork
+                  - ec2:DeleteClientVpnEndpoint
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:client-vpn-endpoint/*"
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeClientVpn*
+                Resource: "*"
+
+  SampleDeploymentRolePassRolePol:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description:
+        Fn::Sub: >-
+          ${DeploymentRole}: pass to CloudFormation. Demonstrates a privilege
+          that non-adminstrators need before they can create a CloudFormation
+          stack using the deployment role.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "iam:PassRole"
+            Resource: !GetAtt DeploymentRole.Arn

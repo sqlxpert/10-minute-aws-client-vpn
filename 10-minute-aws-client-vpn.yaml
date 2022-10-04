@@ -3,7 +3,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 
 Description: |-
   AWS Client VPN
-  
+
   github.com/sqlxpert/10-minute-aws-client-vpn  GPLv3  Copyright Paul Marcelin
 
 Parameters:
@@ -50,7 +50,7 @@ Parameters:
       client's regular network connection.)
 
   TargetSubnetId:
-    Type: String
+    Type: AWS::EC2::Subnet::Id
     Description: >-
       The ID of the primary subnet with which your VPN will be associated. It
       must be in the designated VPC, must contain at least 32 addresses ( /27
@@ -59,7 +59,7 @@ Parameters:
       https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-working-target.html#cvpn-working-target-associate
 
   BackupTargetSubnetId:
-    Type: String
+    Type: String  # List<AWS::EC2::Subnet::Id> cannot be empty
     Description: >-
       The ID of a backup subnet. This one must cover a different
       availability zone. Leave blank for a VPN that costs less but cannot
@@ -108,7 +108,7 @@ Parameters:
     Default: ""
 
   CustomClientSecGrpIds:
-    Type: List<String>
+    Type: List<String>  # List<AWS::EC2::SecurityGroup::Id> cannot be empty
     Description: >-
       Leave blank to create 2 generic security groups for VPN clients.
       Reference ClientSecGrp (1) in security group ingress rules, to allow
@@ -198,7 +198,7 @@ Metadata:
       VpcId:
         default: VPC
       DestinationIpv4CidrBlock:
-        default: Detination IP address range
+        default: Destination IP address range
       TargetSubnetId:
         default: Primary subnet
       BackupTargetSubnetId:

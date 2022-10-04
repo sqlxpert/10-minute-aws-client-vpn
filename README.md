@@ -66,7 +66,7 @@ transfer, and other types of charges may also apply.
 2. Create a CloudFormation stack from
    [10-minute-aws-client-vpn.yaml](/10-minute-aws-client-vpn.yaml)
 
-   Include `Vpn` in the stack name.
+   Name the stack `CVpn` .
 
    The parameters are thoroughly documented. Set only the ones in the
    Essentials section. Make no changes under Advanced Options.
@@ -103,7 +103,7 @@ transfer, and other types of charges may also apply.
 
 7. Add an EC2 instance to the `FromClientSampleSecGrp` security group or, if
    you don't use SSH to access EC2 instances, create a similar security group
-   that allows traffice from VPN clients, on the port of your choice.
+   that allows traffic from VPN clients, on the port of your choice.
 
 8. Test. On your local computer, run:
 
@@ -112,14 +112,14 @@ transfer, and other types of charges may also apply.
    ```
 
    where _PRIVATE_KEY_FILE_ is the path to the private key for the instance's
-   SSH key pair, and _IP_ADDRESS_ is the private address of the instance.
+   SSH key pair, and _IP_ADDRESS_ is the **private** address of the instance.
 
    Some images use a different user name.
 
    If you don't use SSH to administer your EC2 instance, run a different
    command to test VPN connectivity.
 
-9. Remove `FromClientSampleSecGrp` from you EC2 instance.
+9. Remove `FromClientSampleSecGrp` (or equivalent) from you EC2 instance.
 
 ## Automatic Scheduling
 
