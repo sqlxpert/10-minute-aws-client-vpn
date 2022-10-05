@@ -218,6 +218,14 @@ Resources:
                   - ec2:DescribeClientVpn*
                 Resource: "*"
 
+              # CloudFormation stack tag propagation is a blessing and a
+              # curse. Because the CVpn stack is intended to have
+              # sched-set-Enable-true and sched-set-Enable-false stack tags,
+              # CloudFormation needs to be able to create, modify and delete
+              # tags on all child resources. Policy changes will be necessary
+              # if CloudFormation begins supporting tag propagation for more
+              # resource types.
+
   SampleDeploymentRolePassRolePol:
     Type: "AWS::IAM::ManagedPolicy"
     Properties:
