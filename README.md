@@ -79,6 +79,7 @@ transfer, and other types of charges may also apply.
 
  3. Create a CloudFormation stack from
     [10-minute-aws-client-vpn.yaml](/10-minute-aws-client-vpn.yaml)
+    .
 
     Name the stack `CVpn` .
 
@@ -94,7 +95,7 @@ transfer, and other types of charges may also apply.
 
  4. Follow
     [Step 7 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config)
-    , which helps you download and prepare the VPN client configuration file.
+    , which helps you download and edit the VPN client configuration file.
 
     You must find your VPN in the list of
     [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
@@ -116,7 +117,7 @@ transfer, and other types of charges may also apply.
     [AWS client](https://aws.amazon.com/vpn/client-vpn-download/)
     .
 
-    The disclosure for the AWS client indicates that AWS collects usage data.
+    The disclosure for the AWS client reveals that AWS collects usage data.
     I do not know whether OpenVPN also collects data.
 
  6. Import your edited configuration file to the client.
@@ -160,12 +161,13 @@ transfer, and other types of charges may also apply.
 
    Modify these schedules according to your own work days and work hours,
    keeping in mind that the schedules are in UTC time _and_ that UTC has no
-   provision for Daylight Saving Time adjustments.
+   provision for Daylight Saving Time.
 
 4. Find your VPN in the list of
    [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
    in the VPC Console and check that its Target network association(s) are
-   being created and deleted as scheduled.
+   being created and deleted as scheduled. After a few days of operation,
+   check actual costs.
 
 ## Parameter Changes
 
