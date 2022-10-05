@@ -30,18 +30,18 @@ The template minimizes costs by:
    disable the VPN. You can associate a second zone for redundancy, if you
    don't mind the extra cost.
 
-2. Configuring a "split-tunnel" VPN. The VPN carries only private network
-   (VPC) traffic; a client's regular network connection handles public
-   Internet traffic. For simplicity, the template does not support a "full
-   tunnel" configuration.
+2. Configuring a "split-tunnel" VPN, which carries only private network (VPC)
+   traffic. A client's regular network connection handles public Internet
+   traffic. For simplicity, the template does not support a "full tunnel"
+   configuration.
 
 3. Optionally supporting
    [Lights Off](https://github.com/sqlxpert/lights-off-aws),
-   which lets you tag your VPN stack so that the VPN will turned on and off
-   on schedule. For example, leaving the VPN on 10 hours every weekday but
-   shutting it off overnight and on weekends reduces the baseline cost from
-   $876 to $261. With one person working 8 hours per weekday, the minimum
-   total cost drops to $261 + $104 = $365 per year.
+   which can turn the VPN on and off automatically. For example, leaving the
+   VPN on 10 hours every weekday but shutting it off overnight and on weekends
+   reduces the baseline cost from $876 to $261. With one person working 8
+   hours per weekday, the minimum total cost drops to $261 + $104 = $365 per
+   year.
 
 Prices for the US East 1 (Northern Virginia) region were checked October 1,
 2022. Prices and pricing rules can change at any time. NAT gateway, data
@@ -56,17 +56,15 @@ transfer, and other types of charges may also apply.
 
     Copy the Linux/macOS commands and execute them verbatim.
 
-    If you don't mind storing your certificates in `~/custom_folder/`, even
-    those commands can be executed verbatim. I do, however, recommend
-    inserting
+    If you don't mind storing your certificates in `~/custom_folder/` and
+    renaming the folder later, even those commands can be executed verbatim. I
+    do, however, recommend inserting
 
     ```bash
-    `chmod go= ~/custom_folder/`
+    chmod go= ~/custom_folder/
     ```
 
     immediately after the `mkdir` line.
-
-    (You are welcome to rename `~/custom_folder/` later.)
 
     Copy the ARN that ACM assigns when you upload the server certificate.
     There is no need to upload the client certificate to ACM.
@@ -87,12 +85,12 @@ transfer, and other types of charges may also apply.
     The parameters are thoroughly documented. Set only the ones in the
     Essentials section. Make no changes under Advanced Options.
 
-    Optional: If you created the deployment role in the previous step, now
-    scroll up to the Permissions section and set IAM role - optional to
-    `CVpnPrereq-DeploymentRole` . (If your own privileges are limited, you
-    might need explicit permission to pass the deployment role to
-    CloudFormation. See the `CVpnPrereq-SampleDeploymentRolePassRolePol` IAM
-    policy for an example of the necessary statement.)
+    Optional: If you created the deployment role in the previous step, set IAM
+    role - optional to `CVpnPrereq-DeploymentRole` during the `CVpn` stack
+    creation process. (If your own privileges are limited, you might need
+    explicit permission to pass the deployment role to CloudFormation. See the
+    `CVpnPrereq-SampleDeploymentRolePassRolePol` IAM policy for an example of
+    the necessary statement.)
 
  4. Follow
     [Step 7 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config)
@@ -112,7 +110,8 @@ transfer, and other types of charges may also apply.
     name. That line of the configuration file begins with `remote` .
 
  5. Download either the
-    [OpenVPN](https://openvpn.net) client (Products &rarr; Connect Client)
+    [OpenVPN](https://openvpn.net)
+    client (Products &rarr; Connect Client)
     or the
     [AWS client](https://aws.amazon.com/vpn/client-vpn-download/)
     .
@@ -120,13 +119,13 @@ transfer, and other types of charges may also apply.
     The disclosure for the AWS client indicates that AWS collects usage data.
     I do not know whether OpenVPN also collects data.
 
- 6. Import your configuration file to the client.
+ 6. Import your edited configuration file to the client.
 
  7. Use the client to connect to the VPN.
 
- 8. Add an EC2 instance to the `FromClientSampleSecGrp` security group or, if
-    you don't use SSH to access EC2 instances, create a similar security group
-    that allows traffic from VPN clients, on the port of your choice.
+ 8. Add `FromClientSampleSecGrp` to an EC2 instance or, if you don't use SSH,
+    create and add a security group that accepts traffic from VPN clients on
+    the port of your choice.
 
  9. Test. On your local computer, run:
 
@@ -137,10 +136,11 @@ transfer, and other types of charges may also apply.
     where _PRIVATE_KEY_FILE_ is the path to the private key for the instance's
     SSH key pair, and _IP_ADDRESS_ is the **private** address of the instance.
 
-    Some operating system images have a different primary user name.
+    Different operating system images have different
+    [default user names](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/connection-prereqs.html#connection-prereqs-get-info-about-instance);
+    `ec2-user` is not always correct!
 
-    If you don't use SSH to administer your EC2 instance, run a different
-    command to test VPN connectivity.
+    If you do not use SSH, run a different command to test VPN connectivity.
 
 10. Remove `FromClientSampleSecGrp` (or equivalent) from you EC2 instance.
 
@@ -152,7 +152,8 @@ transfer, and other types of charges may also apply.
 
 2. [Install Lights Off](https://github.com/sqlxpert/lights-off-aws#quick-start).
 
-3. Update your `CVpn` CloudFormation stack, adding the following tags:
+3. Update your `CVpn` CloudFormation stack, adding the following stack-level
+   tags:
 
    * `sched-set-Enable-true` : `d=01 d=02 d=03 d=04 d=05 H:M=14:00`
    * `sched-set-Enable-false` : `d=02 d=03 d=04 d=05 d=06 H:M=01:00`
