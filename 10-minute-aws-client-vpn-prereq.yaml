@@ -21,7 +21,7 @@ Parameters:
       string. You may add prefixes and suffixes to your future stack's name.
       For example, if you set this to "CVpn", you can alternate between a
       "CVpn1" stack and a "CVpn2" stack for blue/green deployment of updates,
-      or you can "TestCVpn" stack marked for testing.
+      or you can create a "TestCVpn" stack marked for testing.
     Default: "CVpn"
 
 Metadata:
@@ -73,11 +73,15 @@ Resources:
                   - logs:TagLogGroup
                   - logs:CreateLogStream
                   - logs:DescribeLogStreams
-                Resource: !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group:*${StackNameBase}*"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group:*${StackNameBase}*"
+                  # No standard CloudFormation tags (stack-name, etc.)
               - Effect: Allow
                 Action:
                   - logs:DeleteLogStream
-                Resource: !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group:*${StackNameBase}*"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group:*${StackNameBase}*:log-stream:*"
+                  # No standard CloudFormation tags (stack-name, etc.)
               - Effect: Allow
                 Action:
                   - logs:DescribeLogGroups
@@ -89,38 +93,30 @@ Resources:
                   - kms:DescribeKey
                 Resource: "*"
 
-                # ec2:CreateAction condition not present
               - Effect: Allow
                 Action:
                   - ec2:CreateTags
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
-                Condition:
-                  StringLike:
-                    aws:RequestTag/aws:cloudformation:stack-name: !Sub "*${StackNameBase}*"
-              - Effect: Allow
-                Action:
-                  - ec2:CreateTags
+                  - ec2:DeleteTags  # Due to stack tag propagation
                 Resource:
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
                 Condition:
                   StringLike:
                     aws:ResourceTag/aws:cloudformation:stack-name: !Sub "*${StackNameBase}*"
-              - Sid: WarningAppliesToExistingResourcesNotOnlyNew
+              - Sid: WarningAllResourcesNotOnlyStackRelated
                 Effect: Allow
                 Action:
                   - ec2:CreateTags
                 Resource:
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group-rule/*"
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:client-vpn-endpoint/*"
-                # No standard CloudFormation tags (stack-name, etc.)
+                  # No standard CloudFormation tags (stack-name, etc.)
 
               - Effect: Allow
                 Action:
                   - ec2:CreateSecurityGroup
                 Resource:
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
-                # No aws:RequestTag/TagKey conditions present
+                # aws:RequestTag/aws:cloudformation:stack-name condition not present
               - Effect: Allow
                 Action:
                   - ec2:CreateSecurityGroup
@@ -148,7 +144,7 @@ Resources:
                   - ec2:ModifySecurityGroupRules
                 Resource:
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group-rule/*"
-                # CloudFormation cannot yet tag security group rules, as of 2022-10
+                  # CloudFormation cannot tag security group rules, as of 2022-10
               - Effect: Allow
                 Action:
                   - ec2:DescribeSecurityGroup*
@@ -156,27 +152,23 @@ Resources:
                   - ec2:DescribeVpcs
                 Resource: "*"
 
-              - Effect: Allow
-                Action:
-                  - ssm:AddTagsToResource
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*"
-                Condition:
-                  StringLike:
-                    aws:RequestTag/aws:cloudformation:stack-name: !Sub "*${StackNameBase}*"
-              - Sid: WarningAppliesToAllParameters
+              - Sid: WarningAllParametersNotOnlyStackRelated
                 Effect: Allow
                 Action:
                   - ssm:PutParameter
+                  - ssm:AddTagsToResource
                 Resource:
-                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*"
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/*"
               - Effect: Allow
                 Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
                   - ssm:LabelParameterVersion
+                  - ssm:RemoveTagsFromResource  # Due to stack tag propagation
                   - ssm:DeleteParameter
                   - ssm:DeleteParameters
                 Resource:
-                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*"
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/*"
                 Condition:
                   StringLike:
                     aws:ResourceTag/aws:cloudformation:stack-name: !Sub "*${StackNameBase}*"
