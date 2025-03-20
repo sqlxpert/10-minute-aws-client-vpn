@@ -48,30 +48,25 @@ types of charges may also apply.
 ## Quick Installation
 
  1. Follow AWS's
-    [mutual authentication steps](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-auth-mutual-enable.html),
-    which help you create TLS certificates for the VPN server and for clients,
-    and to upload the server certificate to AWS Certificate Manager.
+    [mutual authentication steps](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-auth-mutual-enable.html).
 
     Copy the individual Linux/macOS commands and execute them verbatim.
 
-    Copy and edit the block of commands before running those.
-    `~/custom_folder` is fine for now, but after the `mkdir` line, do insert:
+    Copy and edit the block of commands before executing those.
+    `~/custom_folder` is fine for now, but after the `mkdir` line, insert:
 
     ```bash
     chmod go= ~/custom_folder
     ```
 
-    to help protect the certificates.
-
-    After uploading the first (server) certificate, copy the ARN that ACM
-    returns.
-
-    There is no need to upload the second (client) certificate.
+    After uploading the first (server) certificate, copy the ARN returned by
+    AWS Certificate Manager. There is no need to upload the second (client)
+    certificate.
 
  2. _Optional:_ You can use a
     [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
     to delegate only the privileges needed to deploy a Client VPN stack.
-    Create a from a locally-saved copy of
+    Create a stack from a locally-saved copy of
     [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml?raw=true)
     [right-click to save as...]. Name the stack `CVpnPrereq` .
 
@@ -86,7 +81,6 @@ types of charges may also apply.
     Name the stack `CVpn` .
 
     The parameters are thoroughly documented. Set only the Essential ones.
-    Ignore the Advanced Options.
 
     _Optional:_ If you created the deployment role in the previous step, set
     IAM role - optional to `CVpnPrereq-DeploymentRole` later in the `CVpn`
@@ -152,9 +146,8 @@ types of charges may also apply.
 
 ## Automatic Scheduling
 
-1. Be sure that you have completed the optional parts of
-   [Quick Installation](#quick-installation)
-   Steps 2 and 3.
+1. Be sure that you have completed the optional parts of the
+   [Quick Installation](#quick-installation) procedure.
 
 2. [Install Lights Off](https://github.com/sqlxpert/lights-off-aws#quick-start).
 
@@ -172,8 +165,8 @@ types of charges may also apply.
      helpful:
      [www.timeanddate.com](https://www.timeanddate.com/worldclock/converter.html?iso=20250320T140000&p1=224&p2=250&p3=1440&p4=37&p5=44)
      .
-   - UTC has no provision for Daylight Saving Time or Summer Time. Leave a
-     1-hour buffer after your work day to avoid having to change schedules.
+   - UTC has no provision for Daylight Saving Time/Summer Time. Leave a
+     buffer after your work day to avoid having to change schedules.
 
 4. Find your VPN in the list of
    [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
@@ -185,14 +178,14 @@ types of charges may also apply.
 
 You can change the `Enable` parameter whenever you wish.
 
-You can add or remove a backup subnet (for a backup Availability Zone) even
+You can add or remove a backup subnet (for a second Availability Zone) even
 while the VPN is enabled. You can also switch between generic and custom
 security groups.
 
 Do not try to change the VPC, the destination or client IP address ranges, or
-the paths, after you have created the `CVpn` stack. To choose different values
-for those parameters, create a `CVpn2` stack and then delete your original
-`CVpn` stack.
+the paths, after you have created the `CVpn` stack. Instead, create a `CVpn2`
+stack and then delete your original `CVpn` stack; distributing a new VPN
+client configuration is required.
 
 ## Feedback
 
