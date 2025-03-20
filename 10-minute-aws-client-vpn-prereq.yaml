@@ -2,7 +2,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
 Description: |-
-  Deployment role for
+  CloudFormation service role to deploy
 
   github.com/sqlxpert/10-minute-aws-client-vpn  GPLv3  Copyright Paul Marcelin
 
@@ -12,16 +12,20 @@ Parameters:
     Type: String
     Default: "https://github.com/sqlxpert/10-minute-aws-client-vpn"
 
+  PlaceholderSuggestedStackName:
+    Type: String
+    Default: "CVpnPrereq"
+
   StackNameBase:
     Type: String
     Description: >-
-      When using the DeploymentRole provided by this stack, you MUST include
-      this string in the name of any VPN stack that you create. For security,
-      no other CloudFormation stack or StackSet's name should include this
-      string. You may add prefixes and suffixes to your future stack's name.
-      For example, if you set this to "CVpn", you can alternate between a
-      "CVpn1" stack and a "CVpn2" stack for blue/green deployment of updates,
-      or you can create a "TestCVpn" stack marked for testing.
+      String that must be in the name of any CloudFormation stack created
+      using the deployment role. For security, do not include this string in
+      the name of unrelated stacks or StackSets. You may add refixes or
+      suffixes when naming a stack created using the deployment role. For
+      example, if you specify "CVpn", you can alternate between "CVpn1" and
+      "CVpn2" stacks for blue/green updates, and you can reate a "TestCVpn"
+      stack for testing.
     Default: "CVpn"
 
 Metadata:
@@ -29,13 +33,19 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: Essentials
+          default: For Reference
         Parameters:
           - PlaceholderHelp
+          - PlaceholderSuggestedStackName
+      - Label:
+          default: Essential
+        Parameters:
           - StackNameBase
     ParameterLabels:
       PlaceholderHelp:
         default: For help with this stack, see
+      PlaceholderSuggestedStackName:
+        default: Suggested stack name
       StackNameBase:
         default: >-
           Name of future stack
@@ -70,7 +80,11 @@ Resources:
                   - logs:DeleteLogGroup
                   - logs:PutRetentionPolicy
                   - logs:DeleteRetentionPolicy
+                  - logs:ListTagsForResource
+                  - logs:TagResource
                   - logs:TagLogGroup
+                  - logs:UntagLogGroup
+                  - logs:UntagResource
                   - logs:CreateLogStream
                   - logs:DescribeLogStreams
                 Resource:
@@ -93,19 +107,31 @@ Resources:
                   - kms:DescribeKey
                 Resource: "*"
 
-              - Effect: Allow
+              - Sid: WarningAllSecGrpsNotOnlyStackRelated
+                Effect: Allow
                 Action:
                   - ec2:CreateTags
-                  - ec2:DeleteTags  # Due to stack tag propagation
+                  - ec2:RevokeSecurityGroupEgress
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
+                  # Cannot check aws:ResourceTag/aws:cloudformation:stack-name
+                  # 1. Before a new security group is tagged
+                  # 2. If creating a security group without an egress rule
+                  #    (because AWS removes the default all-egress rule before
+                  #    tagging the new security group!)
+              - Effect: Allow
+                Action:
+                  - ec2:DeleteTags
                 Resource:
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
                 Condition:
                   StringLike:
                     aws:ResourceTag/aws:cloudformation:stack-name: !Sub "*${StackNameBase}*"
-              - Sid: WarningAllResourcesNotOnlyStackRelated
+              - Sid: WarningAllSecGrpRulesAndVpnEndpointsNotOnlyStackRelated
                 Effect: Allow
                 Action:
                   - ec2:CreateTags
+                  - ec2:DeleteTags
                 Resource:
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group-rule/*"
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:client-vpn-endpoint/*"
@@ -130,7 +156,6 @@ Resources:
                   - ec2:AuthorizeSecurityGroupEgress
                   - ec2:ModifySecurityGroupRules
                   - ec2:RevokeSecurityGroupIngress
-                  - ec2:RevokeSecurityGroupEgress
                   - ec2:DeleteSecurityGroup
                 Resource:
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
@@ -152,10 +177,11 @@ Resources:
                   - ec2:DescribeVpcs
                 Resource: "*"
 
-              - Sid: WarningAllParametersNotOnlyStackRelated
+              - Sid: WarningAllSsmParamsNotOnlyStackRelated
                 Effect: Allow
                 Action:
                   - ssm:PutParameter
+                  - ssm:ListTagsForResource
                   - ssm:AddTagsToResource
                 Resource:
                   - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/*"
@@ -164,7 +190,7 @@ Resources:
                   - ssm:GetParameter
                   - ssm:GetParameters
                   - ssm:LabelParameterVersion
-                  - ssm:RemoveTagsFromResource  # Due to stack tag propagation
+                  - ssm:RemoveTagsFromResource
                   - ssm:DeleteParameter
                   - ssm:DeleteParameters
                 Resource:
@@ -179,8 +205,9 @@ Resources:
 
               # Meaningless ID numbers in AWS Client VPN Endpoint ARNs, and
               # lack of standard CloudFormation tags (stack-name, etc.),
-              # prevents restricting scope of deployment role to just the
-              # endpoint defined in the future stack
+              # prevents restricting the scope of the deployment role to just
+              # the endpoint defined in a stack created using the deployment
+              # role.
               - Effect: Allow
                 Action:
                   - ec2:CreateClientVpnEndpoint
@@ -218,13 +245,13 @@ Resources:
                   - ec2:DescribeClientVpn*
                 Resource: "*"
 
-              # CloudFormation stack tag propagation is a blessing and a
-              # curse. Because the CVpn stack is intended to have
-              # sched-set-Enable-true and sched-set-Enable-false stack tags,
-              # CloudFormation needs to be able to create, modify and delete
-              # tags on all child resources. Policy changes will be necessary
-              # if CloudFormation begins supporting tag propagation for more
-              # resource types.
+                # CloudFormation stack tag propagation is a blessing and a
+                # curse. Because the CVpn stack is intended to have
+                # sched-set-Enable-true and sched-set-Enable-false stack tags,
+                # CloudFormation needs to be able to get/list, create, modify
+                # and delete tags on all child resources. Policy changes may
+                # be necessary if CloudFormation begins supporting tag
+                # propagation for more resource types.
 
   SampleDeploymentRolePassRolePol:
     Type: "AWS::IAM::ManagedPolicy"

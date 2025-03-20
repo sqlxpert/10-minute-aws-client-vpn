@@ -12,6 +12,10 @@ Parameters:
     Type: String
     Default: "https://github.com/sqlxpert/10-minute-aws-client-vpn"
 
+  PlaceholderSuggestedStackName:
+    Type: String
+    Default: "CVpn"
+
   Enable:
     Type: String
     Description: >-
@@ -20,64 +24,17 @@ Parameters:
       to "false" whenever the VPN is not needed; AWS charges for associations
       even when no clients are connected. (Re)creating VPN associations takes
       several minutes. To delete and recreate on a schedule, see
-      https://github.com/sqlxpert/lights-off-aws
+      https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule
     AllowedValues:
       - "false"
       - "true"
     Default: "true"
-
-  VpcId:
-    Type: AWS::EC2::VPC::Id
-    Description: >-
-      The ID of the AWS VPC to which you will connect
-
-  DestinationIpv4CidrBlock:
-    Type: String
-    Description: >-
-      The range of private IPv4 addresses that VPN clients can reach, in CIDR
-      notation. Set to the VPC's address range; this "split-tunnel" VPN routes
-      other traffic through a client's regular network connection.
-
-  ClientIpv4CidrBlock:
-    Type: String
-    Description: >-
-      The (non-overlapping) range of private IPv4 addresses available for VPN
-      clients, in CIDR notation. It must contain between 1024 ( /22 ) and 1
-      million ( /12 ) addresses. Accept the default if your AWS VPC and
-      home/office local-area network (LAN) address ranges are in 172.16.X.X or
-      192.168.X.X, or they do not extend all the way to the end of 10.X.X.X.
-      Change if your VPC or LAN covers 10.0.0.0/8 ( 10.0.0.0 – 10.255.255.255
-      ) or an upper portion such as 10.128.0.0/9 ( 10.128.0.0 – 10.255.255.255
-      ).
-    Default: "10.255.252.0/22"
-
-  TargetSubnetId:
-    Type: AWS::EC2::Subnet::Id
-    Description: >-
-      The ID of the primary subnet with which your VPN will be associated. It
-      must be in the designated VPC, must contain at least 32 addresses ( /27
-      or a lower number of subnet bits, indicating more addresses), and must
-      have at least 8 available IP addresses. See
-      https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-working-target.html#cvpn-working-target-associate
-
-  BackupTargetSubnetId:
-    Type: String  # List<AWS::EC2::Subnet::Id> cannot be empty
-    Description: >-
-      The ID of a backup subnet. This one must cover a different
-      availability zone. Leave blank for a VPN that costs less but cannot
-      accommodate the failure of its sole AWS availability zone.
 
   ServerCertificateArn:
     Type: String
     Description: >-
       The TLS certificate for the VPN server. Specify the ARN of an AWS
       Certificate Manager certificate.
-
-  PlaceholderAdvancedParameters:
-    Type: String
-    Default: ""
-    AllowedValues:
-      - ""
 
   ClientRootCertificateChainArn:
     Type: String
@@ -87,6 +44,63 @@ Parameters:
       certificate, in which case a client with any certificate from the same
       certificate authority (CA) can connect.
     Default: ""
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: >-
+      The ID of the AWS Virtual Private Cloud (VPC) to which the Virtual
+      Private Network (VPN) will connect
+
+  DestinationIpv4CidrBlock:
+    Type: String
+    Description: >-
+      The range of private IPv4 addresses that VPN clients can reach, in CIDR
+      notation. (This "split-tunnel" VPN routes other traffic through a
+      client's regular network connection.) Set to the VPC's address range. If
+      you are using CloudFormation in the AWS Console, reopen the VPC pop-up
+      menu, immediately above, to see the address range of the VPC you
+      specified.
+
+  TargetSubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: >-
+      The ID of the primary subnet with which your VPN will be associated. It
+      must be in the VPC you specified, must contain at least 32 IP addresses
+      ( /27 or fewer subnet bits, indicating more addresses), and must have at
+      least 8 available addresses. See
+      https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-working-target.html#cvpn-working-target-associate
+      . If you are using CloudFormation in the AWS Console, look above to see
+      the Destination IP address range you specified. The Primary subnet
+      pop-up menu shows subnet address ranges. Choose a subnet within the
+      Destination IP address range. (If you have multiple VPCs with
+      overlapping address ranges, check separately that the Subnet ID
+      represents a subnet in the VPC you specified.)
+
+  BackupTargetSubnetId:
+    Type: String  # List<AWS::EC2::Subnet::Id> cannot be empty
+    Description: >-
+      The ID of a backup subnet. This one must cover a different
+      availability zone. Leave blank for a VPN that costs less but cannot
+      accommodate the failure of its sole AWS availability zone.
+
+  ClientIpv4CidrBlock:
+    Type: String
+    Description: >-
+      The non-overlapping range of private IPv4 addresses available for VPN
+      clients, in CIDR notation. It must contain between 1024 and 1 million
+      addresses (that is, between /22 and /12 subnet bits). Accept the default
+      if your AWS VPC and your home/office local-area network (LAN) address
+      ranges are in 172.16.X.X or 192.168.X.X, or they do not go all the way
+      to the end of 10.X.X.X. Change if your VPC or LAN covers all of
+      10.0.0.0/8 (10.0.0.0 to 10.255.255.255), or a final part such as
+      10.128.0.0/9 (10.128.0.0 to 10.255.255.255).
+    Default: "10.255.252.0/22"
+
+  PlaceholderAdvancedParameters:
+    Type: String
+    Default: ""
+    AllowedValues:
+      - ""
 
   ProtocolAndPort:
     Type: String
@@ -120,7 +134,7 @@ Parameters:
       block traffic from VPN clients to the VPC. If the generic groups do not
       meet your needs, specify the IDs of 1 or more security groups to which
       VPN clients should be assigned. Separate multiple IDs with commas (no
-      spaces). Groups must be in the designated VPC.
+      spaces). Groups must be in the VPC you specified.
     Default: ""
 
   ClientSecGrpIdParamPath:
@@ -149,11 +163,17 @@ Parameters:
   CloudWatchLogsKmsKey:
     Type: String
     Description: >-
-      If blank, logs will receive default non-KMS CloudWatch Logs encryption.
-      To use a KMS key, which must be a custom key, specify an ARN with the
-      key ID, not an alias. You MUST first give CloudWatch Logs access to the
-      key by editing the key's key policy. See
+      If this is blank, default non-KMS CloudWatch Logs encryption applies. To
+      use a KMS key, which must be a custom key, specify "ACCOUNT:key/KEY_ID".
+      Whether the custom key is a single-region key, a multi-region key
+      primary, or a multi-region key replica, it must be in the same region
+      where you are creating this stack. Even if the custom key is in the same
+      AWS account as this stack, you must update the key policy to allow usage
+      by CloudWatch Logs. See
       https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/encrypt-log-data-kms.html#cmk-permissions
+      . For a StackSet, the custom key must be multi-region ("mrk-" prefix in
+      the KEY_ID), and a replica (or the primary key itself) must exist in
+      every target region.
     Default: ""
 
 Metadata:
@@ -161,21 +181,28 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: Essentials
+          default: For Reference
         Parameters:
           - PlaceholderHelp
+          - PlaceholderSuggestedStackName
+      - Label:
+          default: Essential
+        Parameters:
           - Enable
+          - ServerCertificateArn
           - VpcId
           - DestinationIpv4CidrBlock
-          - ClientIpv4CidrBlock
           - TargetSubnetId
-          - BackupTargetSubnetId
-          - ServerCertificateArn
+          - ClientIpv4CidrBlock
       - Label:
           default: Advanced Options
         Parameters:
           - PlaceholderAdvancedParameters
+      - Label:
+          default: Virtual Private Network
+        Parameters:
           - ClientRootCertificateChainArn
+          - BackupTargetSubnetId
           - ProtocolAndPort
           - DnsServerIpv4Addr
       - Label:
@@ -192,6 +219,8 @@ Metadata:
     ParameterLabels:
       PlaceholderHelp:
         default: For help with this stack, see
+      PlaceholderSuggestedStackName:
+        default: Suggested stack name
       Enable:
         default: Enabled?
       VpcId:
@@ -207,7 +236,7 @@ Metadata:
       ServerCertificateArn:
         default: Server certificate
       PlaceholderAdvancedParameters:
-        default: Do not change parameters below this line unless necessary!
+        default: Do not change parameters below, unless necessary!
       ClientRootCertificateChainArn:
         default: Client certificate (optional)
       ProtocolAndPort:
@@ -341,7 +370,7 @@ Resources:
         Fn::If:
           - CloudWatchLogsKmsKeyBlank
           - !Ref AWS::NoValue
-          - !Ref CloudWatchLogsKmsKey
+          - !Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${CloudWatchLogsKmsKey}"
 
   LogStream:
     Type: AWS::Logs::LogStream
