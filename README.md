@@ -5,6 +5,39 @@
 This CloudFormation template will help you set up an AWS-managed VPN in about
 10 minutes and operate it for as little as $1 per day!
 
+Client VPN is convenient because AWS manages it for you. It is
+[well-documented](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/what-is.html),
+but there are pitfalls for new users.
+
+[Client VPN is expensive](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing).
+The baseline charge of 10¢ per hour per Availability Zone amounts to $876 per
+year. Add 5¢ per hour per connection. Assuming a 40-hour work week, that is
+$104 per year per person, for a minimum total cost of $876 + $104 = $980 per
+year. At least AWS now throws in
+[free Client VPN data transfer between Availability Zones](https://aws.amazon.com/about-aws/whats-new/2022/04/aws-data-transfer-price-reduction-privatelink-transit-gateway-client-vpn-services/)!
+
+The template minimizes costs by:
+
+1. Using only one Availability Zone by default. Clients can access resources
+   in any zone.
+
+2. Sending only AWS private network (VPC) traffic over the VPN
+   ("split-tunnel").
+
+3. Optionally integrating with
+   [Lights Off](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule),
+   which can turn the VPN on and off on a schedule.
+
+   Leaving the VPN on for 50 hours a week reduces the baseline cost to $261.
+   With one person actually connected for 40 hours, the minimum total cost
+   drops to $261 + $104 = $365 per year.
+
+US-East-1 region prices were checked March 20, 2025 but can change at any
+time. NAT gateway, data transfer, and other types of charges may also apply.
+
+<details>
+  <summary>Rationale for connecting to AWS over a VPN</summary>
+
 Experts discourage relying on the strength of the perimeter around your
 private network, but sometimes, perimeter security _is_ the available defense,
 and a virtual private network connection is necessary. For example, to access
@@ -13,37 +46,7 @@ a VPN, so that the Network File System (NFS) client connection originates
 _inside_ your AWS Virtual Private Cloud (VPC). NFS server software was not
 designed for exposure to the public Internet.
 
-Client VPN is convenient because AWS manages it for you. It is
-[well-documented](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/what-is.html),
-but there are pitfalls for new users.
-
-[Client VPN is expensive](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing).
-The baseline charge of 10¢ per hour per associated Availability Zone amounts
-to $876 per year. Add 5¢ per hour per connection. Assuming a 40-hour work week,
-that is $104 per year per person, for a minimum total cost of $876 + $104 =
-$980 per year. At least AWS now throws in
-[free Client VPN data transfer between Availability Zones](https://aws.amazon.com/about-aws/whats-new/2022/04/aws-data-transfer-price-reduction-privatelink-transit-gateway-client-vpn-services/)!
-
-The template minimizes costs by:
-
-1. Associating the VPN with one Availability Zone. (Clients can access
-   resources in any zone.) Failure of the designated zone would temporarily
-   disable the VPN. You can associate a second zone for redundancy, if you
-   do not mind the extra cost.
-
-2. Configuring a "split-tunnel" VPN, which carries only private network (VPC)
-   traffic. Your regular Internet connection handles public Internet traffic.
-
-3. Optionally supporting
-   [Lights Off](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule),
-   which can turn the VPN on and off automatically. Leaving the VPN on for 10
-   hours every weekday but shutting it off overnight and on weekends reduces
-   the baseline cost to $261. With one person connecting for 8 hours per
-   weekday, the minimum total cost drops to $261 + $104 = $365 per year.
-
-Prices for the US East 1 (Northern Virginia) region were checked March 20,
-2025. Pricing can change at any time. NAT gateway, data transfer, and other
-types of charges may also apply.
+</details>
 
 ## Quick Installation
 
@@ -52,8 +55,8 @@ types of charges may also apply.
 
     Copy the individual Linux/macOS commands and execute them verbatim.
 
-    Copy and edit the block of commands before executing those.
-    `~/custom_folder` is fine for now, but after the `mkdir` line, insert:
+    Copy and edit the block of commands before executing those. Not replacing
+    _custom_folder_ is fine for now, but after the `mkdir` line, insert:
 
     ```bash
     chmod go= ~/custom_folder
@@ -70,7 +73,7 @@ types of charges may also apply.
     [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml?raw=true)
     [right-click to save as...]. Name the stack `CVpnPrereq` .
 
-    This step is _required_ if you plan to use
+    This is required only if you plan to use
     [Lights Off](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule)
     to turn the VPN on and off on a schedule.
 
@@ -91,7 +94,7 @@ types of charges may also apply.
  4. Follow
     [Step 7 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config).
 
-    You must find your VPN in the list of
+    Find your VPN in the list of
     [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
     in the AWS Console and download the configuration file from there.
 
@@ -116,16 +119,13 @@ types of charges may also apply.
     &rarr; Download) or
     [AWS client](https://aws.amazon.com/vpn/client-vpn-download/).
 
-    It is not known whether OpenVPN collects data. The download page for the
-    AWS client reveals that AWS collects usage data.
-
  6. Import your edited configuration file to the client.
 
  7. Use the client to connect to the VPN.
 
  8. Add `FromClientSampleSecGrp` to an EC2 instance or, if you do not use SSH,
     create and add a security group that accepts traffic from VPN clients on
-    another port of your choice.
+    the port of your choice.
 
  9. Test. On your local computer, run:
 
@@ -146,7 +146,7 @@ types of charges may also apply.
 
 ## Automatic Scheduling
 
-1. Be sure that you have completed the optional parts of the
+1. Be sure that you completed the optional parts of the
    [Quick Installation](#quick-installation) procedure.
 
 2. [Install Lights Off](https://github.com/sqlxpert/lights-off-aws#quick-start).
@@ -171,21 +171,21 @@ types of charges may also apply.
 4. Find your VPN in the list of
    [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
    in the AWS Console and check that its Target network association(s) are
-   being created and deleted as scheduled. After a few days of operation,
-   check actual costs.
+   being created and deleted as scheduled. Check actual costs after a few
+   days.
 
-## Parameter Changes
+## Parameter Updates
 
-You can change the `Enable` parameter whenever you wish.
+You can toggle the `Enable` parameter.
 
-You can add or remove a backup subnet (for a second Availability Zone) even
-while the VPN is enabled. You can also switch between generic and custom
-security groups.
+You can add or remove a backup subnet (second Availability Zone) even while
+the VPN is enabled. You can also switch between generic and custom security
+groups.
 
-Do not try to change the VPC, the destination or client IP address ranges, or
-the paths, after you have created the `CVpn` stack. Instead, create a `CVpn2`
-stack and then delete your original `CVpn` stack; distributing a new VPN
-client configuration is required.
+Do not try to change the VPC, the IP address ranges, or the paths after you
+have created the `CVpn` stack. Instead, create a `CVpn2` stack, delete your
+original `CVpn` stack, then update the _remote_ line of your client
+configuration file and re-import.
 
 ## Feedback
 

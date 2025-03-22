@@ -16,17 +16,47 @@ Parameters:
     Type: String
     Default: "CVpnPrereq"
 
-  StackNameBase:
+  PlaceholderAdvancedParameters:
+    Type: String
+    Default: ""
+    AllowedValues:
+      - ""
+
+  StackNameLike:
     Type: String
     Description: >-
-      String that must be in the name of any CloudFormation stack created
-      using the deployment role. For security, do not include this string in
-      the name of unrelated stacks or StackSets. You may add refixes or
-      suffixes when naming a stack created using the deployment role. For
-      example, if you specify "CVpn", you can alternate between "CVpn1" and
-      "CVpn2" stacks for blue/green updates, and you can reate a "TestCVpn"
-      stack for testing.
-    Default: "CVpn"
+      When a stack is created using the deployment role, its name must match
+      this StringLike/ArnLike pattern. Examples: "CVpn" only allows a stack of
+      that name; "CVpn*" also allows stacks with names such as "CVpn2" and
+      "CVpnTest"; and "StackSet-CVpn-*" allows a StackSet named "CVpn", whose
+      StackSet instances receive names beginning "StackSet-CVpn-". See
+      https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_condition_operators.html
+    Default: "CVpn*"
+
+  AllowVpcIds:
+    Type: List<String>
+    Description: >-
+      Limit stack resources to these VPCs, where possible. Separate multiple
+      VPC IDs with commas (no spaces). To allow use of any available VPC,
+      specify *
+    Default: "*"
+
+  AllowSubnetIds:
+    Type: List<String>
+    Description: >-
+      Limit stack resources to these subnets, where possible. Separate
+      multiple Subnet IDs with commas (no spaces). To allow use of any
+      available subnets, specify *
+    Default: "*"
+
+  AllowSecGrpIds:
+    Type: List<String>
+    Description: >-
+      Limit stack resources to these security groups, where possible. This
+      does not limit use of security groups created by the stack itself.
+      Separate multiple Security Group IDs with commas (no spaces). To allow
+      use of any available security groups, specify *
+    Default: "*"
 
 Metadata:
 
@@ -38,17 +68,30 @@ Metadata:
           - PlaceholderHelp
           - PlaceholderSuggestedStackName
       - Label:
-          default: Essential
+          default: Advanced Options
         Parameters:
-          - StackNameBase
+          - PlaceholderAdvancedParameters
+      - Label:
+          default: For stacks created with the deployment role...
+        Parameters:
+          - StackNameLike
+          - AllowVpcIds
+          - AllowSubnetIds
     ParameterLabels:
       PlaceholderHelp:
         default: For help with this stack, see
       PlaceholderSuggestedStackName:
         default: Suggested stack name
-      StackNameBase:
-        default: >-
-          Name of future stack
+      PlaceholderAdvancedParameters:
+        default: Do not change parameters below, unless necessary!
+      StackNameLike:
+        default: Allowed stack name pattern
+      AllowVpcIds:
+        default: Allowed VPCs
+      AllowSubnetIds:
+        default: Allowed Subnets
+      AllowSecGrpIds:
+        default: Allowed Existing Security Groups
 
 Resources:
 
@@ -74,86 +117,159 @@ Resources:
             Version: "2012-10-17"
             Statement:
 
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:DeleteLogGroup
-                  - logs:PutRetentionPolicy
-                  - logs:DeleteRetentionPolicy
-                  - logs:ListTagsForResource
-                  - logs:TagResource
-                  - logs:TagLogGroup
-                  - logs:UntagLogGroup
-                  - logs:UntagResource
-                  - logs:CreateLogStream
-                  - logs:DescribeLogStreams
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group:*${StackNameBase}*"
-                  # No standard CloudFormation tags (stack-name, etc.)
-              - Effect: Allow
-                Action:
-                  - logs:DeleteLogStream
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group:*${StackNameBase}*:log-stream:*"
-                  # No standard CloudFormation tags (stack-name, etc.)
-              - Effect: Allow
-                Action:
-                  - logs:DescribeLogGroups
-                Resource: "*"
-              - Effect: Allow
+              # CLOUDWATCH LOGS ##############################################
+
+              - Sid: ForCloudWatchLogs
+                Effect: Allow
                 Action:
                   - kms:ListKeys
                   - kms:ListAliases
                   - kms:DescribeKey
                 Resource: "*"
 
-              - Sid: WarningAllSecGrpsNotOnlyStackRelated
-                Effect: Allow
-                Action:
-                  - ec2:CreateTags
-                  - ec2:RevokeSecurityGroupEgress
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
-                  # Cannot check aws:ResourceTag/aws:cloudformation:stack-name
-                  # 1. Before a new security group is tagged
-                  # 2. If creating a security group without an egress rule
-                  #    (because AWS removes the default all-egress rule before
-                  #    tagging the new security group!)
               - Effect: Allow
                 Action:
-                  - ec2:DeleteTags
+                  - logs:DescribeLogGroups
+                  - logs:ListTagsForResource
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - logs:TagResource
+                  - logs:TagLogGroup
                 Resource:
-                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
+                  - !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group:*"
                 Condition:
                   StringLike:
-                    aws:ResourceTag/aws:cloudformation:stack-name: !Sub "*${StackNameBase}*"
-              - Sid: WarningAllSecGrpRulesAndVpnEndpointsNotOnlyStackRelated
-                Effect: Allow
+                    aws:RequestTag/aws:cloudformation:stack-name: !Ref StackNameLike
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group:*/${StackNameLike}"
+                # Condition:
+                #   StringLike:
+                #     aws:RequestTag/aws:cloudformation:stack-name: !Ref StackNameLike
+                # Not available, though in CloudWatch Logs/IAM documentation
+              - Effect: Allow
+                Action:
+                  - logs:TagResource
+                  - logs:TagLogGroup
+                  - logs:UntagResource
+                  - logs:UntagLogGroup
+                  - logs:PutRetentionPolicy
+                  - logs:DeleteRetentionPolicy
+                  - logs:DescribeLogStreams
+                  - logs:DeleteLogGroup
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group:*/${StackNameLike}"
+                Condition:
+                  StringLike:
+                    aws:ResourceTag/aws:cloudformation:stack-name: !Ref StackNameLike
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:DeleteLogStream
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group:*/${StackNameLike}:log-stream:*"
+
+              # SYSTEMS MANAGER PARAMETER STORE PARAMETERS ###################
+
+              - Effect: Allow
+                Action:
+                  - ssm:DescribeParameters
+                  - ssm:ListTagsForResource
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ssm:AddTagsToResource
+                  - ssm:PutParameter
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/*/${StackNameLike}/*"
+                # Condition:
+                #   StringLike:
+                #     aws:RequestTag/aws:cloudformation:stack-name: !Ref StackNameLike
+                # Not available, though in Systems Manager/IAM documentation
+              - Effect: Allow
+                Action:
+                  # - ssm:PutParameter
+                  - ssm:LabelParameterVersion
+                  # - ssm:AddTagsToResource
+                  - ssm:RemoveTagsFromResource
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                  - ssm:DeleteParameter
+                  - ssm:DeleteParameters
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/*/${StackNameLike}/*"
+                Condition:
+                  StringLike:
+                    aws:ResourceTag/aws:cloudformation:stack-name: !Ref StackNameLike
+
+              # ALL EC2 TAGS #################################################
+
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeTags
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ec2:CreateTags
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group-rule/*"
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:client-vpn-endpoint/*"
+                # Condition:
+                #   StringLike:
+                #     aws:RequestTag/aws:cloudformation:stack-name: !Ref StackNameLike
+                # Not available, though in EC2/IAM documentation
+              - Effect: Allow
                 Action:
                   - ec2:CreateTags
                   - ec2:DeleteTags
                 Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group-rule/*"
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:client-vpn-endpoint/*"
-                  # No standard CloudFormation tags (stack-name, etc.)
+                Condition:
+                  StringLike:
+                    aws:ResourceTag/aws:cloudformation:stack-name: !Ref StackNameLike
+
+              # GENERAL NETWORK ##############################################
+
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeVpcs
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeSecurityGroup*
+                  # Resource-level permissions not available for
+                  # ec2:DescribeClientVpnEndpoints , though EC2/IAM
+                  # documentation says otherwise
+                  - ec2:DescribeClientVpn*
+                Resource: "*"
+
+              # SECURITY GROUPS ##############################################
 
               - Effect: Allow
                 Action:
                   - ec2:CreateSecurityGroup
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
-                # aws:RequestTag/aws:cloudformation:stack-name condition not present
+                Resource: "*"
+                # Condition:
+                #   StringLike:
+                #     aws:RequestTag/aws:cloudformation:stack-name: !Ref StackNameLike
+                # Not available, though in EC2/IAM documentation
+              # - Effect: Allow
+              #   Action:
+              #     - ec2:CreateSecurityGroup
+              #   Resource: "*"
+              #   Condition:
+              #     StringLike:
+              #       ec2:VpcID: !Ref AllowVpcIds
               - Effect: Allow
                 Action:
-                  - ec2:CreateSecurityGroup
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:vpc/*"
-              - Effect: Allow
-                Action:
-                  - ec2:UpdateSecurityGroupRuleDescriptionsIngress
-                  - ec2:UpdateSecurityGroupRuleDescriptionsEgress
                   - ec2:AuthorizeSecurityGroupIngress
                   - ec2:AuthorizeSecurityGroupEgress
+                  - ec2:UpdateSecurityGroupRuleDescriptionsIngress
+                  - ec2:UpdateSecurityGroupRuleDescriptionsEgress
                   - ec2:ModifySecurityGroupRules
                   - ec2:RevokeSecurityGroupIngress
                   - ec2:DeleteSecurityGroup
@@ -161,89 +277,97 @@ Resources:
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
                 Condition:
                   StringLike:
-                    aws:ResourceTag/aws:cloudformation:stack-name: !Sub "*${StackNameBase}*"
+                    aws:ResourceTag/aws:cloudformation:stack-name: !Ref StackNameLike
+
+              - Effect: Allow
+                Action:
+                  - ec2:RevokeSecurityGroupEgress
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
+                # Condition:
+                #   StringLike:
+                #     aws:ResourceTag/aws:cloudformation:stack-name: !Ref StackNameLike
+                # Neither aws:RequestTag/ nor aws:ResourceTag/ is available
+                # while a security group with no egress rule is being created
+
               - Effect: Allow
                 Action:
                   - ec2:AuthorizeSecurityGroupIngress
                   - ec2:AuthorizeSecurityGroupEgress
-                  - ec2:ModifySecurityGroupRules
                 Resource:
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group-rule/*"
-                  # CloudFormation cannot tag security group rules, as of 2022-10
-              - Effect: Allow
-                Action:
-                  - ec2:DescribeSecurityGroup*
-                  - ec2:DescribeSubnets
-                  - ec2:DescribeVpcs
-                Resource: "*"
-
-              - Sid: WarningAllSsmParamsNotOnlyStackRelated
-                Effect: Allow
-                Action:
-                  - ssm:PutParameter
-                  - ssm:ListTagsForResource
-                  - ssm:AddTagsToResource
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/*"
-              - Effect: Allow
-                Action:
-                  - ssm:GetParameter
-                  - ssm:GetParameters
-                  - ssm:LabelParameterVersion
-                  - ssm:RemoveTagsFromResource
-                  - ssm:DeleteParameter
-                  - ssm:DeleteParameters
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/*"
                 Condition:
                   StringLike:
-                    aws:ResourceTag/aws:cloudformation:stack-name: !Sub "*${StackNameBase}*"
-              - Effect: Allow
-                Action:
-                  - ssm:DescribeParameters
-                Resource: "*"
+                    aws:RequestTag/aws:cloudformation:stack-name: !Ref StackNameLike
 
-              # Meaningless ID numbers in AWS Client VPN Endpoint ARNs, and
-              # lack of standard CloudFormation tags (stack-name, etc.),
-              # prevents restricting the scope of the deployment role to just
-              # the endpoint defined in a stack created using the deployment
-              # role.
+              # AWS CLIENT VPN ENDPOINT ######################################
+
               - Effect: Allow
                 Action:
                   - ec2:CreateClientVpnEndpoint
                 Resource:
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:client-vpn-endpoint/*"
-                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
-                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:subnet/*"
-                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:vpc/*"
+                # Condition:
+                #   StringLike:
+                #     aws:RequestTag/aws:cloudformation:stack-name: !Ref StackNameLike
+                # Not available, though in EC2/IAM documentation
               - Effect: Allow
                 Action:
-                  - ec2:ModifyClientVpnEndpoint
-                  - ec2:ApplySecurityGroupsToClientVpnTargetNetwork
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:client-vpn-endpoint/*"
-                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
-                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:vpc/*"
-              - Effect: Allow
-                Action:
-                  - ec2:AssociateClientVpnTargetNetwork
-                  - ec2:CreateClientVpnRoute
-                  - ec2:DeleteClientVpnRoute
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:client-vpn-endpoint/*"
-                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:subnet/*"
-              - Effect: Allow
-                Action:
+                  # - ec2:DescribeClientVpn*
                   - ec2:AuthorizeClientVpnIngress
                   - ec2:RevokeClientVpnIngress
+                  - ec2:CreateClientVpnRoute
+                  - ec2:DeleteClientVpnRoute
+                  - ec2:AssociateClientVpnTargetNetwork
                   - ec2:DisassociateClientVpnTargetNetwork
+                  - ec2:ModifyClientVpnEndpoint
+                  - ec2:ApplySecurityGroupsToClientVpnTargetNetwork
                   - ec2:DeleteClientVpnEndpoint
                 Resource:
                   - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:client-vpn-endpoint/*"
+                # Condition:
+                #   StringLike:
+                #     aws:ResourceTag/aws:cloudformation:stack-name: !Ref StackNameLike
+                # CloudFormation automatic tag not propagated
               - Effect: Allow
                 Action:
-                  - ec2:DescribeClientVpn*
+                  - ec2:CreateClientVpnEndpoint
+                  - ec2:ModifyClientVpnEndpoint
+                  - ec2:ApplySecurityGroupsToClientVpnTargetNetwork
                 Resource: "*"
+                Condition:
+                  StringLike:
+                    ec2:VpcID: !Ref AllowVpcIds
+              - Effect: Allow
+                Action:
+                  - ec2:CreateClientVpnEndpoint
+                  - ec2:ModifyClientVpnEndpoint
+                  - ec2:ApplySecurityGroupsToClientVpnTargetNetwork
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:security-group/*"
+                Condition:
+                  StringLike:
+                    aws:ResourceTag/aws:cloudformation:stack-name: !Ref StackNameLike
+              - Effect: Allow
+                Action:
+                  - ec2:CreateClientVpnEndpoint
+                  - ec2:ModifyClientVpnEndpoint
+                  - ec2:ApplySecurityGroupsToClientVpnTargetNetwork
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:ec2:*:*:security-group/*"
+                # Condition:
+                #   StringLike:
+                #     ec2:SecurityGropID: !Ref AllowSecGrpIds
+                # Not available, though in EC2/IAM documentation
+              - Effect: Allow
+                Action:
+                  - ec2:CreateClientVpnRoute
+                  - ec2:DeleteClientVpnRoute
+                  - ec2:AssociateClientVpnTargetNetwork
+                Resource: "*"
+                Condition:
+                  StringLike:
+                    ec2:SubnetId: !Ref AllowSubnetIds
 
                 # CloudFormation stack tag propagation is a blessing and a
                 # curse. Because the CVpn stack is intended to have
