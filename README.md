@@ -154,8 +154,8 @@ designed for exposure to the public Internet.
 3. Update your `CVpn` CloudFormation stack, adding the following stack-level
    tags:
 
-   - `sched-set-Enable-true` : `d=01 d=02 d=03 d=04 d=05 H:M=14:00`
-   - `sched-set-Enable-false` : `d=02 d=03 d=04 d=05 d=06 H:M=01:00`
+   - `sched-set-Enable-true` : `u=1 u=2 u=3 u=4 u=5 H:M=14:00`
+   - `sched-set-Enable-false` : `u=2 u=3 u=4 u=5 u=6 H:M=01:00`
 
    Adjust the weekdays and the times based on your work schedule.
 
