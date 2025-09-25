@@ -82,6 +82,7 @@ Parameters:
       The ID of a backup subnet. This one must cover a different
       availability zone. Leave blank for a VPN that costs less but cannot
       accommodate the failure of its sole AWS availability zone.
+    Default: ""
 
   ClientIpv4CidrBlock:
     Type: String
