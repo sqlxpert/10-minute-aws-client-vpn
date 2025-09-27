@@ -248,8 +248,8 @@ You can turn the VPN on and off by toggling the `Enable` parameter of the
 `CVpn` stack in CloudFormation, without making changes in Terraform. `terraform
 plan` will not show any changes.
 
-Be sure to turn the VPN on, because the Terraform-based installation leaves it
-off initially.
+&#9888; **Remember to turn the VPN on!** The Terraform-based installation
+leaves it off initially.
 
 Most users reference centrally-defined
 [subnets shared through Resource Access Manager](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-sharing.html).
