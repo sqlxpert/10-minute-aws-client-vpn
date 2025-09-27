@@ -364,6 +364,8 @@ Resources:
 
   LogGroup:
     Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       LogGroupName: !Sub "${LogGroupPath}/${AWS::StackName}"
       RetentionInDays: !Ref LogsRetainDays

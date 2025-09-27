@@ -47,6 +47,25 @@ terraform {
 variable "accounts_to_regions_to_cvpn_params" {
   type        = map(any)
   description = "Nested map. Outer keys: account number strings, or CURRENT_AWS_ACCOUNT for any one. Intermediate keys: regions such as us-west-2 , or CURRENT_AWS_REGION for any one. Required inner key: target_subnet_ids , a list with 1 to 2 elements. 1st subnet determines VPC. Optional inner keys: destination_ipv4_cidr_block , dns_server_ipv4_addr , client_ipv4_cidr_block and custom_client_sec_grp_ids . If destination_ipv4_cidr_block is not specified, the VPC's primary IPv4 CIDR block is used. See the corresponding CloudFormation stack parameters."
+
+  default = {
+    "CURRENT_AWS_ACCOUNT" = {
+      "CURRENT_AWS_REGION" = {
+        "target_subnet_ids" = [
+          # 1st required, 2nd optional
+          # "subnet-20123456789abcdef",
+        ],
+
+        # Optional:
+        "destination_ipv4_cidr_block" = "",
+        "dns_server_ipv4_addr"        = "",
+        "client_ipv4_cidr_block"      = "",
+        "custom_client_sec_grp_ids" = [
+          # "sg-10123456789abcdef",
+        ]
+      }
+    }
+  }
 }
 variable "cvpn_cloudwatch_logs_kms_key" {
   type        = string
@@ -187,7 +206,7 @@ data "aws_acm_certificate" "cvpn_client_root_chain" {
 
 data "aws_kms_key" "cvpn_cloudwatch_logs" {
   for_each = (
-    (var.cvpn_cloudwatch_logs_kms_key == null) ? toset([]) : local.cvpn_regions_set
+    var.cvpn_cloudwatch_logs_kms_key == null ? toset([]) : local.cvpn_regions_set
   )
 
   region = each.key
@@ -198,6 +217,19 @@ data "aws_kms_key" "cvpn_cloudwatch_logs" {
     split(":", var.cvpn_cloudwatch_logs_kms_key)[0], # account
     split(":", var.cvpn_cloudwatch_logs_kms_key)[1]  # resource (key/KEY_ID)
   )
+}
+
+
+
+resource "aws_cloudformation_stack" "cvpn_prereq" {
+  name          = "CVpnPrereq"
+  template_body = file("${path.module}/10-minute-aws-client-vpn-prereq.yaml")
+}
+
+
+
+data "aws_iam_role" "cvpn_deploy" {
+  name = aws_cloudformation_stack.outputs["DeploymentRoleName"]
 }
 
 
@@ -213,6 +245,8 @@ resource "aws_cloudformation_stack" "cvpn" {
       # not in Terraform.
     ]
   }
+
+  iam_role_arn = data.aws_iam_role.cvpn_deploy.arn
 
   parameters = {
     Enable = tostring(false)

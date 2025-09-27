@@ -2,8 +2,10 @@
 
 ## Goals
 
-This CloudFormation template will help you set up an AWS-managed VPN in about
-10 minutes and operate it for as little as $1 per day!
+This CloudFormation template
+([Terraform wrapper also provided](#terraform-tips))
+helps you set up an AWS-managed VPN in about 10&nbsp;minutes and operate it for
+as little as $1.41 per work day!
 
 Client VPN is convenient because AWS manages it for you. It is
 [well-documented](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/what-is.html),
@@ -12,28 +14,29 @@ but there are pitfalls for new users.
 [Client VPN is expensive](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing).
 The baseline charge of 10¢ per hour per Availability Zone amounts to $876 per
 year. Add 5¢ per hour per connection. Assuming a 40-hour work week, that is
-$104 per year per person, for a minimum total cost of $876 + $104 = $980 per
-year. At least AWS now throws in
+$104 per year per person, for a minimum total cost of
+$876&nbsp;+&nbsp;$104&nbsp;=&nbsp;$980 per year. At least AWS now throws in
 [free Client VPN data transfer between Availability Zones](https://aws.amazon.com/about-aws/whats-new/2022/04/aws-data-transfer-price-reduction-privatelink-transit-gateway-client-vpn-services/)!
 
 The template minimizes costs by:
 
-1. Using only one Availability Zone by default. Clients can access resources
-   in any zone.
+ 1. Using only one Availability Zone by default. Clients can access resources
+    in any zone.
 
-2. Sending only AWS private network (VPC) traffic over the VPN
-   ("split-tunnel").
+ 2. Sending only AWS private network (VPC) traffic over the VPN
+    ("split-tunnel").
 
-3. Optionally integrating with
-   [Lights Off](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule),
-   which can turn the VPN on and off on a schedule.
+ 3. Optionally integrating with
+    [Lights Off](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule),
+    which can turn the VPN on and off on a schedule.
 
-   Leaving the VPN on for 50 hours a week reduces the baseline cost to $261.
-   With one person actually connected for 40 hours, the minimum total cost
-   drops to $261 + $104 = $365 per year.
+    Leaving the VPN on 50&nbsp;hours a week reduces the baseline cost to $261.
+    With one person actually connected for 40&nbsp;hours, the minimum total
+    cost drops to $261&nbsp;+&nbsp;$104&nbsp;=&nbsp;$365 per year. Dividing by
+    260&nbsp;work days yields $1.41&nbsp;.
 
-US-East-1 region prices were checked March 20, 2025 but can change at any
-time. NAT gateway, data transfer, and other types of charges may also apply.
+US-East-1 region prices were checked March&nbsp;20,&nbsp;2025 but can change at
+any time. NAT gateway, data transfer, and other charges may also apply.
 
 <details>
   <summary>Rationale for connecting to AWS over a VPN</summary>
@@ -146,33 +149,33 @@ designed for exposure to the public Internet.
 
 ## Automatic Scheduling
 
-1. Be sure that you completed the optional parts of the
-   [Quick Installation](#quick-installation) procedure.
+ 1. Be sure that you completed the optional parts of the
+    [Quick Installation](#quick-installation) procedure.
 
-2. [Install Lights Off](https://github.com/sqlxpert/lights-off-aws#quick-start).
+ 2. [Install Lights Off](https://github.com/sqlxpert/lights-off-aws#quick-start).
 
-3. Update your `CVpn` CloudFormation stack, adding the following stack-level
-   tags:
+ 3. Update your `CVpn` CloudFormation stack, adding the following stack-level
+    tags:
 
-   - `sched-set-Enable-true` : `u=1 u=2 u=3 u=4 u=5 H:M=14:00`
-   - `sched-set-Enable-false` : `u=2 u=3 u=4 u=5 u=6 H:M=01:00`
+    - `sched-set-Enable-true` : `u=1 u=2 u=3 u=4 u=5 H:M=14:00`
+    - `sched-set-Enable-false` : `u=2 u=3 u=4 u=5 u=6 H:M=01:00`
 
-   Adjust the weekdays and the times based on your work schedule.
+    Adjust the weekdays and the times based on your work schedule.
 
-   - `u=1` is Monday and `u=7` is Sunday, per
-     [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Week_dates).
-   - Times are in Universal Coordinated Time (UTC). This converter may be
-     helpful:
-     [www.timeanddate.com](https://www.timeanddate.com/worldclock/converter.html?iso=20250320T140000&p1=224&p2=250&p3=1440&p4=37&p5=44)
-     .
-   - UTC has no provision for Daylight Saving Time/Summer Time. Leave a
-     buffer after your work day to avoid having to change schedules.
+    - `u=1` is Monday and `u=7` is Sunday, per
+      [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Week_dates).
+    - Times are in Universal Coordinated Time (UTC). This converter may be
+      helpful:
+      [www.timeanddate.com](https://www.timeanddate.com/worldclock/converter.html?iso=20250320T140000&p1=224&p2=250&p3=1440&p4=37&p5=44)
+      .
+    - UTC has no provision for Daylight Saving Time/Summer Time. Leave a
+      buffer after your work day to avoid having to change schedules.
 
-4. Find your VPN in the list of
-   [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
-   in the AWS Console and check that its Target network association(s) are
-   being created and deleted as scheduled. Check actual costs after a few
-   days.
+ 4. Find your VPN in the list of
+    [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
+    in the AWS Console and check that its Target network association(s) are
+    being created and deleted as scheduled. Check actual costs after a few
+    days.
 
 ## Parameter Updates
 
@@ -186,6 +189,58 @@ Do not try to change the VPC, the IP address ranges, or the paths after you
 have created the `CVpn` stack. Instead, create a `CVpn2` stack, delete your
 original `CVpn` stack, then update the _remote_ line of your client
 configuration file and re-import.
+
+## Terraform Tips
+
+You can copy
+[10-minute-aws-client-vpn.tf](/10-minute-aws-client-vpn.tf?raw=true)
+[10-minute-aws-client-vpn.yaml](/10-minute-aws-client-vpn.yaml?raw=true)
+[10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml?raw=true)
+to your root Terraform module.
+
+In a `terraform.tfvars` file in the same directory, set:
+
+```terraform
+accounts_to_regions_to_cvpn_params = {
+  "CURRENT_AWS_ACCOUNT" = {
+    "CURRENT_AWS_REGION" = {
+      "target_subnet_ids" = [
+        "subnet-0cec32cd29b245a7d",
+      ],
+    }
+  }
+}
+```
+
+Edit the subnet&nbsp;ID in `target_subnet_ids` to match the ID of a subnet in
+the VPN's primary (or sole) Availability Zone.
+
+Follow the
+[Quick Installation](#quick-installation)
+instructions, except that Step&nbsp;2 is performed automatically and that in
+place of Steps&nbsp;3, you will tag the VPN certificate(s) you've uploaded and
+then use Terraform to install the CloudFormation stack. If you did not upload a
+client certificate, apply both tags to the _server_ certificate.
+
+```shell
+aws acm add-tags-to-certificate --certificate-arn 'SERVER_CERT_ARN' --tags 'Key=CVpnServer,Value='
+aws acm add-tags-to-certificate --certificate-arn 'CLIENT_CERT_ARN' --tags 'Key=CVpnClientRootChain,Value='
+
+terraform apply
+```
+
+Terraform requires permission to:
+
+- Create, update and delete IAM roles
+- List/describe, and get tags for all of the resource types mentioned in
+  `CVpnPrereq-DeploymentRole`
+- Pass the `CVpnPrereq-DeploymentRole*` to CloudFormation
+
+To accept traffic from the VPN, reference
+`data.aws_security_group.vpn_client.id` in
+`aws_vpc_security_group.ingress.security_groups` or
+`aws_vpc_security_group_ingress_rule.referenced_security_group_id`&nbsp;.
+
 
 ## Feedback
 
