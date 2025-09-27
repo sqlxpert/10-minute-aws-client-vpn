@@ -217,10 +217,11 @@ the VPN's primary (or sole) Availability Zone.
 
 Follow the
 [Quick Installation](#quick-installation)
-instructions, except that Step&nbsp;2 is performed automatically and that in
-place of Steps&nbsp;3, you will tag the VPN certificate(s) you've uploaded and
-then use Terraform to install the CloudFormation stack. If you did not upload a
-client certificate, apply both tags to the _server_ certificate.
+instructions, except that Step&nbsp;2 is handled automatically and that in
+place of Steps&nbsp;3, you will tag the VPN certificate(s) you've uploaded
+before using _Terraform_ to install the `CVpnPrereq` and `CVpn` CloudFormation
+stacks. If you did not upload a client certificate, apply both tags to the
+_server_ certificate.
 
 ```shell
 aws acm add-tags-to-certificate --tags 'Key=CVpnServer,Value=' --certificate-arn 'SERVER_CERT_ARN'
