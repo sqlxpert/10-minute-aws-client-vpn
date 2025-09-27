@@ -77,7 +77,7 @@ Parameters:
       represents a subnet in the VPC you specified.)
 
   BackupTargetSubnetId:
-    Type: String  # List<AWS::EC2::Subnet::Id> cannot be empty
+    Type: String  # AWS::EC2::Subnet::Id cannot be blank
     Description: >-
       The ID of a backup subnet. This one must cover a different
       availability zone. Leave blank for a VPN that costs less but cannot
