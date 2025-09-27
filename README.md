@@ -192,6 +192,8 @@ configuration file and re-import.
 
 ## Terraform Tips
 
+### Files Required for Terraform
+
 Copy
 [10-minute-aws-client-vpn.tf](/10-minute-aws-client-vpn.tf?raw=true)
 [10-minute-aws-client-vpn.yaml](/10-minute-aws-client-vpn.yaml?raw=true)
@@ -215,6 +217,8 @@ accounts_to_regions_to_cvpn_params = {
 Edit the subnet&nbsp;ID in `target_subnet_ids` to match the ID of a subnet in
 the VPN's primary (or sole) Availability Zone.
 
+### Installing with Terraform
+
 Follow the
 [Quick Installation](#quick-installation)
 instructions, except that Step&nbsp;2 is handled automatically and that in
@@ -237,12 +241,6 @@ You must be sure to give Terraform permission to:
   [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml)
 - Pass the `CVpnPrereq-DeploymentRole*` IAM role to CloudFormation
 
-To accept traffic from VPN clients, reference
-`data.aws_security_group.vpn_client.id` in
-`aws_vpc_security_group.ingress.security_groups` or
-`aws_vpc_security_group_ingress_rule.referenced_security_group_id`
-when you define security groups for your servers or listeners.
-
 The Terraform-based installation is fully compatible with
 [Automatic Scheduling](#automatic-scheduling).
 You can turn the VPN on and off by toggling the `Enable` parameter of the
@@ -251,6 +249,16 @@ plan` will not show any changes.
 
 &#9888; **Remember to turn the VPN on!** The Terraform-based installation
 leaves it off initially.
+
+### Referencing the Generic VPN Client Security Group in Terraform
+
+To accept traffic from VPN clients, reference
+`data.aws_security_group.vpn_client.id` in
+`aws_vpc_security_group.ingress.security_groups` or
+`aws_vpc_security_group_ingress_rule.referenced_security_group_id`
+when you define security groups for your servers or listeners.
+
+### Customizing for Your Terraform Configuration
 
 Most users reference centrally-defined
 [subnets shared through Resource Access Manager](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-sharing.html).
