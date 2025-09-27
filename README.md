@@ -192,7 +192,7 @@ configuration file and re-import.
 
 ## Terraform Tips
 
-You can copy
+Copy
 [10-minute-aws-client-vpn.tf](/10-minute-aws-client-vpn.tf?raw=true)
 [10-minute-aws-client-vpn.yaml](/10-minute-aws-client-vpn.yaml?raw=true)
 [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml?raw=true)
@@ -229,18 +229,38 @@ aws acm add-tags-to-certificate --certificate-arn 'CLIENT_CERT_ARN' --tags 'Key=
 terraform apply
 ```
 
-Terraform requires permission to:
+You must be sure to give Terraform permission to:
 
 - Create, update and delete IAM roles
-- List/describe, and get tags for all of the resource types mentioned in
-  `CVpnPrereq-DeploymentRole`
-- Pass the `CVpnPrereq-DeploymentRole*` to CloudFormation
+- List, describe, and get tags for, all of the resource types mentioned in
+  [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml)
+- Pass the `CVpnPrereq-DeploymentRole*` IAM role to CloudFormation
 
-To accept traffic from the VPN, reference
+To accept traffic from VPN clients, reference
 `data.aws_security_group.vpn_client.id` in
 `aws_vpc_security_group.ingress.security_groups` or
-`aws_vpc_security_group_ingress_rule.referenced_security_group_id`&nbsp;.
+`aws_vpc_security_group_ingress_rule.referenced_security_group_id`
+when you define security groups for your servers or listeners.
 
+The Terraform-based installation is fully compatible with
+[Automatic Scheduling](#automatic-scheduling).
+You can turn the VPN on and off by toggling the `Enable` parameter of the
+`CVpn` stack in CloudFormation, without making changes in Terraform. `terraform
+plan` will not show any changes.
+
+Be sure to turn the VPN on, because the Terraform-based installation leaves it
+off initially.
+
+Most users reference centrally-defined
+[subnets shared through Resource Access Manager](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-sharing.html).
+The Terraform installation relies on data sources, which are appropriate for
+this configuration. If your subnets are defined in the same Terraform workspace
+as the VPN, you may wish to substitute direct resource references.
+
+You may also wish to treat the Terraform code as a child module, and to change
+the supplied interface (`var.accounts_to_regions_to_cvpn_params`) to suit your
+particular approach to
+[Terraform module composition](https://developer.hashicorp.com/terraform/language/modules/develop/composition).
 
 ## Feedback
 

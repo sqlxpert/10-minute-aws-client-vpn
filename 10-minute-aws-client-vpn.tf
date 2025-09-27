@@ -25,17 +25,19 @@
 
 
 
-# Developed in the specific versions listed.
-terraform {
-  required_version = "1.13.3"
+# Developed in the specific Terraform and AWS Provider versions listed.
+# If treating this as a child module, uncomment this block.
 
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "6.14.1"
-    }
-  }
-}
+# terraform {
+#   required_version = "1.13.3"
+#
+#   required_providers {
+#     aws = {
+#       source  = "hashicorp/aws"
+#       version = "6.14.1"
+#     }
+#   }
+# }
 
 
 
