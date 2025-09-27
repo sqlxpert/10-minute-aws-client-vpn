@@ -223,8 +223,8 @@ then use Terraform to install the CloudFormation stack. If you did not upload a
 client certificate, apply both tags to the _server_ certificate.
 
 ```shell
-aws acm add-tags-to-certificate --certificate-arn 'SERVER_CERT_ARN' --tags 'Key=CVpnServer,Value='
-aws acm add-tags-to-certificate --certificate-arn 'CLIENT_CERT_ARN' --tags 'Key=CVpnClientRootChain,Value='
+aws acm add-tags-to-certificate --tags 'Key=CVpnServer,Value=' --certificate-arn 'SERVER_CERT_ARN'
+aws acm add-tags-to-certificate --tags 'Key=CVpnClientRootChain,Value=' --certificate-arn 'CLIENT_CERT_ARN'
 
 terraform apply
 ```
