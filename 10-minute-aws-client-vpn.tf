@@ -3,30 +3,41 @@
 
 
 
-# These resources are intended for the root module, or for your own complete
-# child module. You may wish to eliminate the variables and refine the data
-# source arguments, or to eliminate the data sources as well, and refer
-# directly to a VPC, subnets and other resources that you have defined. I did
-# not want to define a complete child module whose interface might not fit
-# users' approaches to module composition! Instead, I offer an example for you
-# to modify.
+# Intended for the root module, or your own complete child module. You may wish
+# to eliminate the variables and refine the data source arguments, or to
+# eliminate the data sources as well, and refer directly to a VPC, subnets and
+# other resources. I did not want to define a complete child module whose
+# interface might not fit users' approaches to module composition! Instead, I
+# offer an example for you to modify. For the same reason, I have not split the
+# contents of this file into main.tf and other separate files. To guide you:
 #
-# A CloudFormation StackSet, rather than multiple module instances or for_each
-# on aws_cloudformation_stack , would be the easy, AWS-idiomatic way to deploy
-# VPNs in multiple AWS accounts and regions. Version 6 of the Terraform AWS
-# Provider, released in 2025-06, supports using a single provider reference for
-# resources in multiple regions, but existing Terraform HCL code will have to
-# be refactored, and you are still on your own for multiple accounts. Although
-# you will likely rely on VPC Peering, Transit Gateway or VPC Lattice instead
-# of creating VPNs in multiple accounts and regions, I do loop over accounts
-# (in locals) and regions (in data sources), to demonstrate a structure that
-# might be useful for setting
+# https://developer.hashicorp.com/terraform/language/modules/develop/structure
+#
+# https://developer.hashicorp.com/terraform/language/modules/develop/composition
+
+
+
+# A CloudFormation StackSet, rather than for_each on aws_cloudformation_stack
+# or multiple instances of a module, would be the easy, AWS-idiomatic way to
+# deploy VPNs in multiple AWS accounts and regions. Version 6 of the Terraform
+# AWS Provider, released in 2025-06, supports using a single provider reference
+# for resources in multiple regions, but existing Terraform HCL code will have
+# to be refactored, and you are still on your own for multiple accounts.
+# Although you will likely rely on VPC Peering, Transit Gateway or VPC Lattice
+# instead of creating VPNs in multiple accounts and regions, I do loop over
+# accounts (in locals) and regions (in data sources), to demonstrate a
+# structure that might be useful for setting
 # aws_cloudformation_stack_set_instance.parameter_overrides .
+#
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-concepts.html#stacksets-concepts-stackset
 
 
 
 # Developed in the specific Terraform and AWS Provider versions listed.
-# If treating this as a child module, uncomment this block.
+# If treating this as a child module, uncomment this block. If you have
+# adopted other versions, test before changing the version constraints.
+#
+# https://developer.hashicorp.com/terraform/language/modules/develop/providers#provider-version-constraints-in-modules
 
 # terraform {
 #   required_version = "1.13.3"
@@ -42,7 +53,7 @@
 
 
 # Reference resources not specific to the VPN by ID, because you might not have
-# permission to tag shared, multi-purpose resources.
+# permission to tag shared, multi-purpose resources...
 
 
 
@@ -279,7 +290,7 @@ resource "aws_cloudformation_stack" "cvpn" {
 
     ClientSecGrpIdParamPath = local.cvpn_client_sec_grp_id_param_path
     CustomClientSecGrpIds = try(
-      # Terraform can't convert an HCL list to List<String> for CloudFormation!
+      # Terraform won't convert an HCL list to List<String> for CloudFormation!
       # Error: Inappropriate value for attribute "parameters": element
       # "CustomClientSecGrpIds": string required, but have list of string.
       join(",",
@@ -306,12 +317,16 @@ resource "aws_cloudformation_stack" "cvpn" {
 
 
 
-# The CloudFormation template is self-contained. Any resources that you might
-# need to reference can be identified from inputs that you provided; no stack
-# outputs are needed. If you did not supply a list of your own security groups
-# for VPN clients (see the CustomClientSecGrpIds parameter), a Systems Manager
-# (SSM) Parameter Store parameter with a known name identifies the generic VPN
-# client security group created for you.
+# The CloudFormation template is self-contained. Resources that you might need
+# to reference can be resolved from inputs that you provided; no stack outputs
+# are needed. If you did not supply your own security group(s) for VPN clients
+# (see the CustomClientSecGrpIds parameter), an AWS SystemsManager (SSM)
+# Parameter Store parameter with a known name identifies the generic VPN client
+# security group created for you. If treating this as a child module, you may
+# wish to define an output for aws_security_group.cvpn_client.id . Unnecessary
+# dependence on module outputs leaves Terraform configurations brittle;
+# pre-defining security group(s) and passing them in lets you refer to them at
+# any stage, dependency-free.
 data "aws_ssm_parameter" "cvpn_client_sec_grp_id" {
   count = try(aws_cloudformation_stack.cvpn.parameters["CustomClientSecGrpIds"], "") == "" ? 1 : 0
   # CustomClientSecGrpIds is a string in HCL, not a list; see above!
