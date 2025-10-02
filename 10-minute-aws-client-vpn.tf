@@ -59,30 +59,34 @@
 
 variable "accounts_to_regions_to_cvpn_params" {
   type        = map(any)
-  description = "Nested map. Outer keys: account number strings, or CURRENT_AWS_ACCOUNT for any one. Intermediate keys: regions such as us-west-2 , or CURRENT_AWS_REGION for any one. Required inner key: target_subnet_ids , a list with 1 to 2 elements. 1st subnet determines VPC. Optional inner keys: destination_ipv4_cidr_block , dns_server_ipv4_addr , client_ipv4_cidr_block and custom_client_sec_grp_ids . If destination_ipv4_cidr_block is not specified, the VPC's primary IPv4 CIDR block is used. See the corresponding CloudFormation stack parameters."
+  description = "Nested map. Outer keys: account number strings, or CURRENT_AWS_ACCOUNT for any one. Intermediate keys: regions such as us-west-2 , or CURRENT_AWS_REGION for any one. Required inner key: TargetSubnetIds , a list with 1 to 2 elements. 1st subnet determines VPC. Optional inner keys: DestinationIpv4CidrBlock , DnsServerIpv4Addr , ClientIpv4CidrBlock , CustomClientSecGrpIds , and schedule_tags . If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Keys mentioned above correspond to CloudFormation stack parameters. If automatic scheduling is configured, you may set the on and off schedule expressions by adding schedule_tags , a map with keys sched-set-Enable-true and sched-set-Enable-false ."
 
   default = {
     "CURRENT_AWS_ACCOUNT" = {
       "CURRENT_AWS_REGION" = {
-        "target_subnet_ids" = [
+        "TargetSubnetIds" = [
           # 1st required, 2nd optional
           # "subnet-10123456789abcdef",
         ],
 
         # Optional:
-        "destination_ipv4_cidr_block" = "",
-        "dns_server_ipv4_addr"        = "",
-        "client_ipv4_cidr_block"      = "",
-        "custom_client_sec_grp_ids" = [
+        "DestinationIpv4CidrBlock" = "",
+        "DnsServerIpv4Addr"        = "",
+        "ClientIpv4CidrBlock"      = "",
+        "CustomClientSecGrpIds" = [
           # "sg-10123456789abcdef",
         ]
+        "schedule_tags" = {
+          "sched-set-Enable-true"  = "",
+          "sched-set-Enable-false" = "",
+        }
       }
     }
   }
 }
 variable "cvpn_cloudwatch_logs_kms_key" {
   type        = string
-  description = "If not set, default non-KMS CloudWatch Logs encryption applies. See the CloudWatchLogsKmsKey CloudFormation parameter."
+  description = "If not set, default non-KMS CloudWatch Logs encryption applies. See the CloudWatchLogsKmsKey CloudFormation stack parameter."
 
   default = null
 }
@@ -117,7 +121,7 @@ locals {
 data "aws_subnet" "cvpn_target" {
   for_each = {
     for region, cvpn_params in local.regions_to_cvpn_params :
-    region => cvpn_params["target_subnet_ids"][0]
+    region => cvpn_params["TargetSubnetIds"][0]
   }
 
   region = each.key
@@ -128,8 +132,8 @@ data "aws_subnet" "cvpn_target" {
 data "aws_subnet" "cvpn_vpc_backup_target" {
   for_each = {
     for region, cvpn_params in local.regions_to_cvpn_params :
-    region => cvpn_params["target_subnet_ids"][1]
-    if length(cvpn_params["target_subnet_ids"]) >= 2
+    region => cvpn_params["TargetSubnetIds"][1]
+    if length(cvpn_params["TargetSubnetIds"]) >= 2
   }
 
   region = each.key
@@ -163,8 +167,8 @@ data "aws_vpc" "cvpn" {
 data "aws_security_groups" "cvpn_custom_client" {
   for_each = {
     for region, cvpn_params in local.regions_to_cvpn_params :
-    region => cvpn_params["custom_client_sec_grp_ids"]
-    if length(try(cvpn_params["custom_client_sec_grp_ids"], [])) >= 1
+    region => cvpn_params["CustomClientSecGrpIds"]
+    if length(try(cvpn_params["CustomClientSecGrpIds"], [])) >= 1
   }
 
   region = each.key
@@ -261,6 +265,17 @@ resource "aws_cloudformation_stack" "cvpn" {
     ]
   }
 
+  tags = {
+    sched-set-Enable-true = try(
+      local.cvpn_params.schedule_tags["sched-set-Enable-true"],
+      null
+    )
+    sched-set-Enable-false = try(
+      local.cvpn_params.schedule_tags["sched-set-Enable-false"],
+      null
+    )
+  }
+
   iam_role_arn = data.aws_iam_role.cvpn_deploy.arn
 
   parameters = {
@@ -271,11 +286,11 @@ resource "aws_cloudformation_stack" "cvpn" {
 
     VpcId = data.aws_vpc.cvpn[local.region].id
     DestinationIpv4CidrBlock = try(
-      local.cvpn_params["destination_ipv4_cidr_block"],
+      local.cvpn_params["DestinationIpv4CidrBlock"],
       data.aws_vpc.cvpn[local.region].cidr_block
     )
     DnsServerIpv4Addr = try(
-      local.cvpn_params["dns_server_ipv4_addr"],
+      local.cvpn_params["DnsServerIpv4Addr"],
       null
     )
 
@@ -286,7 +301,7 @@ resource "aws_cloudformation_stack" "cvpn" {
     )
 
     ClientIpv4CidrBlock = try(
-      local.cvpn_params["client_ipv4_cidr_block"],
+      local.cvpn_params["ClientIpv4CidrBlock"],
       null
     )
 
@@ -351,11 +366,12 @@ output "cvpn_client_sec_grp_id" {
   description = "ID of the generic security group for Client VPN clients. Defined only if not custom security groups were supplied (see the CustomClientSecGrpIds CloudFormation stack parameter."
 }
 
+
+
 data "aws_ec2_client_vpn_endpoint" "cvpn" {
   tags = {
     Name = aws_cloudformation_stack.cvpn.name
-    # Not yet available, as of 2025-10:
-    # "aws:cloudformation:stack-name" = aws_cloudformation_stack.cvpn.name
+    # "aws:cloudformation:stack-name" tag not yet available, as of 2025-10
   }
 }
 output "cvpn_endpoint_id" {

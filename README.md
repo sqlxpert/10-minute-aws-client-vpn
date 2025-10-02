@@ -171,7 +171,8 @@ exposure to the public Internet.
     [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
     in the AWS Console and check that its Target network association(s) are
     being created and deleted as scheduled. Check actual costs after a few
-    days.
+    days, and set up alerts in
+    [AWS Budgets](https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html).
 
 ## Parameter Updates
 
@@ -205,7 +206,7 @@ In a `terraform.tfvars` file in the same directory, set:
 accounts_to_regions_to_cvpn_params = {
   "CURRENT_AWS_ACCOUNT" = {
     "CURRENT_AWS_REGION" = {
-      "target_subnet_ids" = [
+      "TargetSubnetIds" = [
         "subnet-10123456789abcdef",
       ],
     }
@@ -213,7 +214,7 @@ accounts_to_regions_to_cvpn_params = {
 }
 ```
 
-Edit the subnet&nbsp;ID in `target_subnet_ids` to match the ID of a subnet in
+Edit the subnet&nbsp;ID in `TargetSubnetIds` to match the ID of a subnet in
 the VPN's primary (or sole) Availability Zone.
 
 ### Installing with Terraform
@@ -221,7 +222,7 @@ the VPN's primary (or sole) Availability Zone.
 Follow the
 [Quick Installation](#quick-installation)
 instructions, except that Step&nbsp;2 is handled automatically and that in
-place of Steps&nbsp;3, you will tag the VPN certificate(s) you've uploaded
+place of Step&nbsp;3, you will tag the VPN certificate(s) you've uploaded,
 before using _Terraform_ to install the `CVpnPrereq` and `CVpn` CloudFormation
 stacks. If you did not upload a client certificate, apply both tags to the
 _server_ certificate.
@@ -241,8 +242,8 @@ You must be sure to give Terraform permission to:
 The Terraform option is fully compatible with
 [Automatic Scheduling](#automatic-scheduling).
 You can turn the VPN on and off by toggling the `Enable` parameter of the
-`CVpn` stack in CloudFormation, without making changes in Terraform. `terraform
-plan` will not show any changes.
+`CVpn` stack in CloudFormation. `terraform plan` will not show unapplied
+changes.
 
 &#9888; **Remember to turn the VPN on!** The Terraform option leaves it off
 initially.

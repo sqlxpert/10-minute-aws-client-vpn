@@ -138,19 +138,6 @@ Parameters:
       spaces). Groups must be in the VPC you specified.
     Default: ""
 
-  SsmParamPath:
-    Type: String
-    Description: >-
-      The path to prepend when naming the VPN client security group parameter
-      (applies only when generic security groups are in use) and the endpoint
-      ID parameter (always provided).
-      In CloudFormation templates, use
-      {{resolve:ssm:<SsmParamPath>/<NameOfThisStack>/ClientSecGrpId}}
-      and
-      {{resolve:ssm:<SsmParamPath>/<NameOfThisStack>/EndpointId}}
-      to reference these AWS Systems Manager (SSM) Parameter Store parameters.
-    Default: "/cloudformation"
-
   LogsRetainDays:
     Type: Number
     Description: >-
@@ -179,6 +166,19 @@ Parameters:
       the KEY_ID), and a replica (or the primary key itself) must exist in
       every target region.
     Default: ""
+
+  SsmParamPath:
+    Type: String
+    Description: >-
+      The path to prepend when naming the VPN client security group parameter
+      (applies only when generic security groups are in use) and the endpoint
+      ID parameter (always provided).
+      In CloudFormation templates, use
+      {{resolve:ssm:<SsmParamPath>/<NameOfThisStack>/ClientSecGrpId}}
+      and
+      {{resolve:ssm:<SsmParamPath>/<NameOfThisStack>/EndpointId}}
+      to reference these AWS Systems Manager (SSM) Parameter Store parameters.
+    Default: "/cloudformation"
 
 Metadata:
 
@@ -213,13 +213,17 @@ Metadata:
           default: Security groups
         Parameters:
           - CustomClientSecGrpIds
-          - SsmParamPath
       - Label:
           default: Connection log (CloudWatch)
         Parameters:
           - LogsRetainDays
           - LogGroupPath
           - CloudWatchLogsKmsKey
+      - Label:
+          default: Systems Manager (SSM) Parameter Store
+        Parameters:
+          - SsmParamPath
+
     ParameterLabels:
       PlaceholderHelp:
         default: For help with this stack, see
@@ -249,14 +253,14 @@ Metadata:
         default: DNS server (optional)
       CustomClientSecGrpIds:
         default: Custom security group(s) for VPN clients (optional)
-      SsmParamPath:
-        default: Path of VPN client security group and endpoint ID parameters
       LogsRetainDays:
         default: Retention period
       LogGroupPath:
         default: Path
       CloudWatchLogsKmsKey:
         default: KMS encryption key (optional)
+      SsmParamPath:
+        default: Path of VPN client security group and endpoint ID parameters
 
 Conditions:
 
@@ -449,7 +453,8 @@ Resources:
             --client-vpn-endpoint-id 'cvpn-endpoint-00123456789abcdef'
           .
           To avoid a hard dependency, find the endpoint by its
-          "aws:cloudformation:stack-name" tag instead.
+          "Name"
+          tag instead.
       DataType: text
       Type: String
       Value: !Ref Endpoint
