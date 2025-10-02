@@ -1,0 +1,53 @@
+{
+  "Statement": [
+    {
+      "Principal": "*",
+      "Effect": "Allow",
+      "Action": "Update:*",
+      "Resource": "*"
+    },
+    {
+      "Principal": "*",
+      "Effect": "Deny",
+      "Action": [
+        "Update:Replace",
+        "Update:Delete"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "ResourceType": [
+            "AWS::Logs::LogGroup",
+            "AWS::Logs::LogStream",
+            "AWS::EC2::ClientVpnEndpoint"
+          ]
+        }
+      }
+    },
+    {
+      "Principal": "*",
+      "Effect": "Deny",
+      "Action": [
+        "Update:Replace"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "ResourceType": [
+            "AWS::SSM::Parameter"
+          ]
+        }
+      }
+    },
+    {
+      "Principal": "*",
+      "Effect": "Deny",
+      "Action": [
+        "Update:Delete"
+      ],
+      "Resource": [
+        "LogicalResourceId/EndpointIdParam"
+      ]
+    }
+  ]
+}

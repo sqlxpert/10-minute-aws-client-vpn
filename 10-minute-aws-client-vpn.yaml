@@ -16,6 +16,10 @@ Parameters:
     Type: String
     Default: "CVpn"
 
+  PlaceholderSuggestedStackPolicyBody:
+    Type: String
+    Default: "https://github.com/sqlxpert/10-minute-aws-client-vpn/blob/main/10-minute-aws-client-vpn-policy.json?raw=true"
+
   Enable:
     Type: String
     Description: >-
@@ -77,11 +81,12 @@ Parameters:
       represents a subnet in the VPC you specified.)
 
   BackupTargetSubnetId:
-    Type: String  # List<AWS::EC2::Subnet::Id> cannot be empty
+    Type: String  # AWS::EC2::Subnet::Id cannot be blank
     Description: >-
       The ID of a backup subnet. This one must cover a different
       availability zone. Leave blank for a VPN that costs less but cannot
       accommodate the failure of its sole AWS availability zone.
+    Default: ""
 
   ClientIpv4CidrBlock:
     Type: String
@@ -137,16 +142,6 @@ Parameters:
       spaces). Groups must be in the VPC you specified.
     Default: ""
 
-  ClientSecGrpIdParamPath:
-    Type: String
-    Description: >-
-      The path to prepend when naming the VPN client security group parameter.
-      Applies only when generic security groups are in use. In CloudFormation
-      templates, use
-      {{resolve:ssm:<Path>/<NameOfThisStack>/ClientSecGrpId}} to reference
-      the Systems Manager (SSM) Parameter Store parameter.
-    Default: "/cloudformation"
-
   LogsRetainDays:
     Type: Number
     Description: >-
@@ -176,6 +171,19 @@ Parameters:
       every target region.
     Default: ""
 
+  SsmParamPath:
+    Type: String
+    Description: >-
+      The path to prepend when naming the VPN client security group parameter
+      (applies only when generic security groups are in use) and the endpoint
+      ID parameter (always provided).
+      In CloudFormation templates, use
+      {{resolve:ssm:<SsmParamPath>/<NameOfThisStack>/ClientSecGrpId}}
+      and
+      {{resolve:ssm:<SsmParamPath>/<NameOfThisStack>/EndpointId}}
+      to reference these AWS Systems Manager (SSM) Parameter Store parameters.
+    Default: "/cloudformation"
+
 Metadata:
 
   AWS::CloudFormation::Interface:
@@ -185,6 +193,7 @@ Metadata:
         Parameters:
           - PlaceholderHelp
           - PlaceholderSuggestedStackName
+          - PlaceholderSuggestedStackPolicyBody
       - Label:
           default: Essential
         Parameters:
@@ -209,18 +218,24 @@ Metadata:
           default: Security groups
         Parameters:
           - CustomClientSecGrpIds
-          - ClientSecGrpIdParamPath
       - Label:
           default: Connection log (CloudWatch)
         Parameters:
           - LogsRetainDays
           - LogGroupPath
           - CloudWatchLogsKmsKey
+      - Label:
+          default: Systems Manager (SSM) Parameter Store
+        Parameters:
+          - SsmParamPath
+
     ParameterLabels:
       PlaceholderHelp:
         default: For help with this stack, see
       PlaceholderSuggestedStackName:
         default: Suggested stack name
+      PlaceholderSuggestedStackPolicyBody:
+        default: Copy suggested stack policy from
       Enable:
         default: Enabled?
       VpcId:
@@ -245,14 +260,14 @@ Metadata:
         default: DNS server (optional)
       CustomClientSecGrpIds:
         default: Custom security group(s) for VPN clients (optional)
-      ClientSecGrpIdParamPath:
-        default: Path of VPN client security group parameter
       LogsRetainDays:
         default: Retention period
       LogGroupPath:
         default: Path
       CloudWatchLogsKmsKey:
         default: KMS encryption key (optional)
+      SsmParamPath:
+        default: Path of VPN client security group and endpoint ID parameters
 
 Conditions:
 
@@ -303,7 +318,7 @@ Resources:
         Fn::Sub: >-
           ${AWS::StackName} client (Reference in security group ingress rules,
           to allow traffic from VPN clients. In CloudFormation templates, use
-          {{!resolve:ssm:${ClientSecGrpIdParamPath}/${AWS::StackName}/ClientSecGrpId}}
+          {{!resolve:ssm:${SsmParamPath}/${AWS::StackName}/ClientSecGrpId}}
           , without the exclamation mark.)
       VpcId: !Ref VpcId
       SecurityGroupEgress:
@@ -349,20 +364,25 @@ Resources:
     Type: AWS::SSM::Parameter
     Condition: CustomClientSecGrpIdsBlankCreateGeneric
     Properties:
-      Name: !Sub "${ClientSecGrpIdParamPath}/${AWS::StackName}/ClientSecGrpId"
+      Name: !Sub "${SsmParamPath}/${AWS::StackName}/ClientSecGrpId"
       Description:
         Fn::Sub: >-
-          ${AWS::StackName} client security group ID (Reference in security
-          group ingress rules, to allow traffic from VPN clients. In
-          CloudFormation templates, use
-          {{!resolve:ssm:${ClientSecGrpIdParamPath}/${AWS::StackName}/ClientSecGrpId}}
-          , without the exclamation mark.)
+          ${AWS::StackName} client security group ID.
+          In CloudFormation templates, use
+          {{!resolve:ssm:${SsmParamPath}/${AWS::StackName}/ClientSecGrpId}}
+          , without the exclamation mark.
+          Reference in security group ingress rules, to allow traffic from VPN
+          clients.
+          To avoid a dependency, pre-define security groups and set
+          CustomClientSecGrpIds .
       DataType: text
       Type: String
       Value: !GetAtt ClientSecGrp.GroupId
 
   LogGroup:
     Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       LogGroupName: !Sub "${LogGroupPath}/${AWS::StackName}"
       RetentionInDays: !Ref LogsRetainDays
@@ -418,7 +438,33 @@ Resources:
         - ResourceType: client-vpn-endpoint
           Tags:
             - Key: Name
-              Value: !Sub "${AWS::StackName}-Endpoint"
+              Value: !Ref AWS::StackName
+              # As of 2025-10, CloudFormation does not set default tags such as
+              # aws:cloudformation:stack-name for this resource type.
+
+  EndpointIdParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "${SsmParamPath}/${AWS::StackName}/EndpointId"
+      Description:
+        Fn::Sub: >-
+          ${AWS::StackName} endpoint ID.
+          In CloudFormation templates, use
+          {{!resolve:ssm:${SsmParamPath}/${AWS::StackName}/EndpointId}}
+          , without the exclamation mark.
+          The self-service portal is not available, due to use of mutual TLS
+          authentication. Download the VPN client configuration file using the
+          AWS Console (VPC service) or the command-line interface:
+          aws ec2 export-client-vpn-client-configuration
+            --output text
+            --client-vpn-endpoint-id 'cvpn-endpoint-00123456789abcdef'
+          .
+          To avoid a hard dependency, find the endpoint by its
+          "Name"
+          tag instead.
+      DataType: text
+      Type: String
+      Value: !Ref Endpoint
 
   AuthRule:
     Type: AWS::EC2::ClientVpnAuthorizationRule
