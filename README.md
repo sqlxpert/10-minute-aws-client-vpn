@@ -6,14 +6,9 @@ This CloudFormation template
 (+&nbsp;[Terraform option](#terraform-option))
 helps you set up an
 [AWS-managed VPN](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/what-is.html)
-in about 10&nbsp;minutes and operate it for $1.41 per work day!
+in about 10&nbsp;minutes and operate it for as little as $1.41 per work day!
 
-[Client VPN is expensive](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing).
-The baseline charge of 10¢ per hour amounts to $876 per year for one
-Availability Zone. Add 5¢ per hour per connection. Assuming a 40-hour work
-week, that is $104 per year per person, for a minimum total cost of
-$876&nbsp;+&nbsp;$104&nbsp;=&nbsp;$980 per year.
-
+[AWS Client VPN is expensive](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing).
 How this template minimizes costs:
 
  1. [Split-tunneling](https://en.wikipedia.org/wiki/Split_tunneling).
@@ -25,17 +20,36 @@ How this template minimizes costs:
 
  3. Optional on/off scheduling with
     [github.com/sqlxpert/lights-off-aws](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule)&nbsp;.
-    Leaving the VPN on 50&nbsp;hours a week reduces the baseline cost to $261.
-    With one person actually connected for 40&nbsp;hours, the minimum total
-    cost drops to $261&nbsp;+&nbsp;$104&nbsp;=&nbsp;$365 per year. Dividing by
-    260&nbsp;work days yields $1.41&nbsp;.
 
-> Prices in the `us-east-1` region were checked March&nbsp;20,&nbsp;2025 but
-can change at any time. NAT gateway, data transfer, and other charges may also
-apply.
+    <details>
+      <summary>Cost savings...</summary>
+
+    <br/>
+
+    |VPN usage|Price (1&nbsp;hour)|Hours (7&nbsp;days)|Hours (365&nbsp;days)|Cost (365&nbsp;days)|
+    |:---|:---:|:---:|:---:|:---:|
+    |_Always&nbsp;on:_|||||
+    |Endpoint associated|10¢|168|8,760|$876|
+    |1&nbsp;client connected|5¢|40|2,080|$104|
+    |Total||||$980|
+    |_Work&nbsp;days&nbsp;only:_|||||
+    |Endpoint associated|10¢|**50**|**2,607**|**$261**|
+    |1&nbsp;client connected|5¢|40|2,080|$104|
+    |Total||||**$365**|
+
+    $365 per year divided by 260&nbsp;work days gives $1.41&nbsp;per work day.
+
+    > Prices in the `us-east-1` region were checked in October,&nbsp;2025 but
+    can change at any time.<br/>
+    NAT gateway, data transfer, and other charges may
+    also apply.
+
+    </details>
 
 <details>
-  <summary>Rationale for connecting to AWS with a VPN</summary>
+  <summary>Rationale for connecting to AWS with a VPN...</summary>
+
+<br/>
 
 Experts discourage relying on the strength of the perimeter around your private
 network, but sometimes, perimeter security _is_ the available defense, and a
@@ -193,11 +207,13 @@ configuration file and re-import.
 ### Files Required for Terraform
 
 Copy
+&nbsp;
 [10-minute-aws-client-vpn.tf](/10-minute-aws-client-vpn.tf?raw=true)
 &nbsp;
 [10-minute-aws-client-vpn.yaml](/10-minute-aws-client-vpn.yaml?raw=true)
 &nbsp;
 [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml?raw=true)
+&nbsp;
 to the directory containing your root Terraform module.
 <!-- White space instead of commas, in case users paste to the command line -->
 
@@ -216,9 +232,9 @@ accounts_to_regions_to_cvpn_params = {
 ```
 
 Edit the subnet&nbsp;ID to match the ID of a subnet in the VPN's primary (or
-sole) Availability Zone. There is no need to alter `CURRENT_AWS_ACCOUNT` or
-`CURRENT_AWS_REGION`, literals that will automatically be replaced with an AWS
-account number and a region code.
+sole) Availability Zone. The `CURRENT_AWS_ACCOUNT` and `CURRENT_AWS_REGION`
+literals will automatically be replaced with an AWS account number and a region
+code.
 
 ### Installing with Terraform
 
@@ -246,13 +262,13 @@ aws acm add-tags-to-certificate --tags 'Key=CVpnClientRootChain,Value=' --certif
 terraform apply
 ```
 
-Remember to &#9888; **turn the VPN on** by changing the `Enable` parameter of
+Remember to **turn on the VPN** &#9888; by changing the `Enable` parameter of
 the `CVpn` stack to `true`, in CloudFormation. The Terraform option leaves the
-VPN off initially.
+VPN off at first.
 
 The Terraform option is compatible with
 [Automatic Scheduling](#automatic-scheduling).
-`terraform plan` will not show unapplied changes when the `Enable` parameter
+`terraform plan` will not report unapplied changes when the `Enable` parameter
 value is changed in CloudFormation. To have Terraform set the schedule tags,
 add
 
@@ -265,24 +281,29 @@ add
 
 to the inner `accounts_to_regions_to_cvpn_params` map. Edit the tag values.
 
-### Referencing the Client VPN Endpoint in Terraform
+### Referencing Outputs in Terraform
 
-For the Client VPN endpoint ID, reference
-`data.aws_ec2_client_vpn_endpoint.cvpn.client_vpn_endpoint_id`&nbsp;.
-
-### Referencing the VPN Client Security Group in Terraform
+For the VPN endpoint ID, reference
+`data.aws_ec2_client_vpn_endpoint.cvpn.client_vpn_endpoint_id` (output:
+`cvpn_endpoint_id`&nbsp;).
 
 To accept traffic from VPN clients, reference
-`data.aws_security_group.vpn_client.id` in
+`data.aws_security_group.vpn_client.id` (output:
+`cvpn_client_sec_grp_id`&nbsp;) in
 
 - `aws_vpc_security_group.ingress.security_groups` _or_
 - `aws_vpc_security_group_ingress_rule.referenced_security_group_id`
 
-when you define security groups for your servers or listeners.
-
-This does not apply if you supplied custom client security group(s).
+when you define security groups for your servers or listeners. This data
+source and output are not available &#9888; if you supplied
+`CustomClientSecGrpIds`.
 
 ### Customizing the Terraform Option
+
+<details>
+  <summary>Customization possibilities...</summary>
+
+<br/>
 
 Up-to-date AWS users reference centrally-defined
 [subnets shared through Resource Access Manager](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-sharing.html).
@@ -293,9 +314,11 @@ If your subnets happen to be defined in the same Terraform workspace as the
 VPN, you may wish to substitute direct resource references.
 
 You may also wish to treat the Terraform code as a child module, and to change
-the supplied interface (`var.accounts_to_regions_to_cvpn_params`) to suit your
+the interface (`var.accounts_to_regions_to_cvpn_params`) to suit your
 particular approach to
 [Terraform module composition](https://developer.hashicorp.com/terraform/language/modules/develop/composition).
+
+</details>
 
 ## Feedback
 
@@ -307,7 +330,7 @@ and
 ## Licenses
 
 |Scope|Link|Included Copy|
-|--|--|--|
+|:---|:---:|:---:|
 |Source code files, and source code embedded in documentation files|[GNU General Public License (GPL) 3.0](http://www.gnu.org/licenses/gpl-3.0.html)|[LICENSE-CODE.md](/LICENSE-CODE.md)|
 |Documentation files (including this readme file)|[GNU Free Documentation License (FDL) 1.3](http://www.gnu.org/licenses/fdl-1.3.html)|[LICENSE-DOC.md](/LICENSE-DOC.md)|
 
