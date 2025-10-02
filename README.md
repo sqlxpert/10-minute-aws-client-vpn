@@ -226,8 +226,9 @@ module "cvpn" {
 ```
 
 Replace _TAG_ with a specific version from
-[Releases](/releases).
+[Releases](https://github.com/sqlxpert/10-minute-aws-client-vpn/releases).
 Always reference a specific version &#9888;.
+
 Edit the subnet&nbsp;ID to match the ID of a subnet in the VPN's primary (or
 sole) Availability Zone. The module will replace the `CURRENT_AWS_ACCOUNT` and
 `CURRENT_AWS_REGION` literals with an AWS account number and a region code.
