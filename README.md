@@ -86,9 +86,16 @@ exposure to the public Internet.
     [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml?raw=true)
     [right-click to save as...]. Name the stack `CVpnPrereq` .
 
-    This is required only if you plan to use
+    This step is required only if you plan to use
     [Lights Off](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule)
     to turn the VPN on and off on a schedule.
+
+    Under "Additional settings" &rarr; "Stack policy - optional", you can
+    "Upload a file" and select a locally-saved copy of
+    [10-minute-aws-client-vpn-prereq-policy.json](/10-minute-aws-client-vpn-prereq-policy.json?raw=true)
+    [right-click to save as...]. The stack policy prevents inadvertent
+    replacement or deletion of the deployment role during stack updates,
+    but it cannot prevent deletion of the entire `CVpnPrereq` stack.
 
  3. Create a CloudFormation stack from a locally-saved copy of
     [10-minute-aws-client-vpn.yaml](/10-minute-aws-client-vpn.yaml?raw=true)
