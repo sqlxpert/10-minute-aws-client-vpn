@@ -16,6 +16,10 @@ Parameters:
     Type: String
     Default: "CVpnPrereq"
 
+  PlaceholderSuggestedStackPolicyBody:
+    Type: String
+    Default: "https://github.com/sqlxpert/10-minute-aws-client-vpn/blob/main/10-minute-aws-client-vpn-prereq-policy.json?raw=true"
+
   PlaceholderAdvancedParameters:
     Type: String
     Default: ""
@@ -67,6 +71,7 @@ Metadata:
         Parameters:
           - PlaceholderHelp
           - PlaceholderSuggestedStackName
+          - PlaceholderSuggestedStackPolicyBody
       - Label:
           default: Advanced Options
         Parameters:
@@ -82,6 +87,8 @@ Metadata:
         default: For help with this stack, see
       PlaceholderSuggestedStackName:
         default: Suggested stack name
+      PlaceholderSuggestedStackPolicyBody:
+        default: Copy suggested stack policy from
       PlaceholderAdvancedParameters:
         default: Do not change parameters below, unless necessary!
       StackNameLike:
