@@ -158,6 +158,8 @@ Resources:
                   - logs:UntagLogGroup
                   - logs:PutRetentionPolicy
                   - logs:DeleteRetentionPolicy
+                  - logs:AssociateKmsKey
+                  - logs:DisassociateKmsKey
                   - logs:DescribeLogStreams
                   - logs:DeleteLogGroup
                 Resource:

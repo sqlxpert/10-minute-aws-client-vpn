@@ -19,7 +19,7 @@ How this template minimizes costs:
  1. [Split-tunneling](https://en.wikipedia.org/wiki/Split_tunneling).
     Only AWS private network (VPC) traffic uses the VPN.
 
- 2. Single Availability Zone default.
+ 2. Single Availability Zone, by default.
     [VPN clients can access VPC resources in any Availability Zone in the same
     region at no extra charge](https://aws.amazon.com/about-aws/whats-new/2022/04/aws-data-transfer-price-reduction-privatelink-transit-gateway-client-vpn-services/).
 
@@ -216,17 +216,19 @@ accounts_to_regions_to_cvpn_params = {
 ```
 
 Edit the subnet&nbsp;ID to match the ID of a subnet in the VPN's primary (or
-sole) Availability Zone. Do not alter `CURRENT_AWS_ACCOUNT` or
-`CURRENT_AWS_REGION`, literal key names that will automatically be replaced
-with an AWS account number and a region code.
+sole) Availability Zone. There is no need to alter `CURRENT_AWS_ACCOUNT` or
+`CURRENT_AWS_REGION`, literals that will automatically be replaced with an AWS
+account number and a region code.
 
 ### Installing with Terraform
 
 Terraform must have permission to:
 
-- Create, tag, update and delete IAM roles and their in-line policies
+- List, describe, get tags for, create, tag, update and delete IAM roles and
+  their in-line policies
 - List, describe, and get tags for, all of the resource types mentioned in
   [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml)
+  and any specific resources referenced in Terraform variables
 - Pass `CVpnPrereq-DeploymentRole-*` to CloudFormation
 
 Follow the
@@ -278,7 +280,7 @@ To accept traffic from VPN clients, reference
 
 when you define security groups for your servers or listeners.
 
-This does not apply if you supply custom client security group(s).
+This does not apply if you supplied custom client security group(s).
 
 ### Customizing the Terraform Option
 
