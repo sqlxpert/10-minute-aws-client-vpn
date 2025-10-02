@@ -204,9 +204,49 @@ configuration file and re-import.
 
 ## Terraform Option
 
-### Files Required for Terraform
+### Terraform Child Module
 
-Copy
+To treat this as a child module, add the following to your root Terraform
+module:
+
+```terraform
+module "cvpn" {
+  source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git?ref=vTAG"
+
+  accounts_to_regions_to_cvpn_params = {
+    "CURRENT_AWS_ACCOUNT" = {
+      "CURRENT_AWS_REGION" = {
+        "TargetSubnetIds" = [
+          "subnet-10123456789abcdef",
+        ]
+      }
+    }
+  }
+}
+```
+
+Replace _TAG_ with a specific version from
+[Releases](/releases).
+Always reference a specific version &#9888;.
+Edit the subnet&nbsp;ID to match the ID of a subnet in the VPN's primary (or
+sole) Availability Zone. The module will replace the `CURRENT_AWS_ACCOUNT` and
+`CURRENT_AWS_REGION` literals with an AWS account number and a region code.
+
+Before proceeding, have Terraform download the module's source code:
+
+```terraform
+terraform init
+```
+
+### Terraform Root Module
+
+<details>
+  <summary>Required files...</summary>
+
+<br/>
+
+To add the resources to your root Terraform module instead of treating this as
+a child module, copy
 &nbsp;
 [10-minute-aws-client-vpn.tf](/10-minute-aws-client-vpn.tf?raw=true)
 &nbsp;
@@ -231,10 +271,9 @@ accounts_to_regions_to_cvpn_params = {
 }
 ```
 
-Edit the subnet&nbsp;ID to match the ID of a subnet in the VPN's primary (or
-sole) Availability Zone. The `CURRENT_AWS_ACCOUNT` and `CURRENT_AWS_REGION`
-literals will automatically be replaced with an AWS account number and a region
-code.
+Edit the subnet&nbsp;ID.
+
+</details>
 
 ### Installing with Terraform
 

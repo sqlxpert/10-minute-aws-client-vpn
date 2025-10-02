@@ -3,13 +3,13 @@
 
 
 
-# Intended for the root module, or your own complete child module. You may wish
-# to eliminate the variables and refine the data source arguments, or to
+# Intended for use in the root module or as a child module. You may wish to
+# eliminate the variables and refine the data source arguments, or to
 # eliminate the data sources as well, and refer directly to a VPC, subnets and
-# other resources. I did not want to define a complete child module whose
-# interface might not fit users' approaches to module composition! Instead, I
-# offer an example for you to modify. For the same reason, I have not split the
-# contents of this file into main.tf and other separate files. To guide you:
+# other resources. I do not want to prescribe a child module whose interface
+# might not fit users' approaches to module composition! Instead, I offer an
+# example for you to modify. For the same reason, I have not split this into
+# main.tf and other separate files. To guide you:
 #
 # https://developer.hashicorp.com/terraform/language/modules/develop/structure
 #
@@ -33,22 +33,16 @@
 
 
 
-# Developed in the specific Terraform and AWS Provider versions listed.
-# If treating this as a child module, uncomment this block. If you have
-# adopted other versions, test before changing the version constraints.
-#
-# https://developer.hashicorp.com/terraform/language/modules/develop/providers#provider-version-constraints-in-modules
+terraform {
+  required_version = "~> 1.13.0"
 
-# terraform {
-#   required_version = "1.13.3"
-#
-#   required_providers {
-#     aws = {
-#       source  = "hashicorp/aws"
-#       version = "6.14.1"
-#     }
-#   }
-# }
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.14.0"
+    }
+  }
+}
 
 
 
@@ -59,14 +53,14 @@
 
 variable "accounts_to_regions_to_cvpn_params" {
   type        = map(any)
-  description = "Nested map. Outer keys: account number strings, or CURRENT_AWS_ACCOUNT for any one. Intermediate keys: regions such as us-west-2 , or CURRENT_AWS_REGION for any one. Required inner key: TargetSubnetIds , a list with 1 to 2 elements. 1st subnet determines VPC. Optional inner keys: DestinationIpv4CidrBlock , DnsServerIpv4Addr , ClientIpv4CidrBlock , CustomClientSecGrpIds , and schedule_tags . If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Keys mentioned above correspond to CloudFormation stack parameters. If automatic scheduling is configured, you may set the on and off schedule expressions by adding schedule_tags , a map with keys sched-set-Enable-true and sched-set-Enable-false ."
+  description = "Nested map. Outer keys: account number strings, or CURRENT_AWS_ACCOUNT for any one. Intermediate keys: regions such as us-west-2 , or CURRENT_AWS_REGION for any one. Required inner key: TargetSubnetIds , a list with 1 to 2 elements. 1st subnet determines VPC. Optional inner keys: DestinationIpv4CidrBlock , DnsServerIpv4Addr , ClientIpv4CidrBlock , CustomClientSecGrpIds , and schedule_tags . If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Keys mentioned above correspond to CloudFormation stack parameters. If automatic scheduling is configured, set the on and off schedule expressions by adding schedule_tags , a map with keys sched-set-Enable-true and sched-set-Enable-false ."
 
   default = {
     "CURRENT_AWS_ACCOUNT" = {
       "CURRENT_AWS_REGION" = {
         "TargetSubnetIds" = [
           # 1st required, 2nd optional
-          # "subnet-10123456789abcdef",
+          "subnet-10123456789abcdef",
         ],
 
         # Optional:
