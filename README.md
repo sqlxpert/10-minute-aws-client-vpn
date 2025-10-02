@@ -255,16 +255,8 @@ terraform init
 <br/>
 
 To create the VPN in your root Terraform module instead of in a child module,
-copy
-&nbsp;
-[10-minute-aws-client-vpn.tf](/10-minute-aws-client-vpn.tf?raw=true)
-&nbsp;
-[10-minute-aws-client-vpn.yaml](/10-minute-aws-client-vpn.yaml?raw=true)
-&nbsp;
-[10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml?raw=true)
-&nbsp;
-to the directory containing your root Terraform module.
-<!-- White space instead of commas, in case users paste to the command line -->
+copy the `*.tf *.yaml *.json` files to the directory containing your root
+Terraform module.
 
 In a `terraform.tfvars` file in the same directory, set:
 

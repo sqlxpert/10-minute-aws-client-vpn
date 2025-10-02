@@ -237,6 +237,10 @@ resource "aws_cloudformation_stack" "cvpn_prereq" {
   template_body = file("${path.module}/10-minute-aws-client-vpn-prereq.yaml")
 
   capabilities = ["CAPABILITY_IAM"]
+
+  policy_body = file(
+    "${path.module}/10-minute-aws-client-vpn-prereq-policy.json"
+  )
 }
 
 
