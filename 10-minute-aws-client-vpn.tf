@@ -237,12 +237,14 @@ data "aws_kms_key" "cvpn_cloudwatch_logs" {
 resource "aws_cloudformation_stack" "cvpn_prereq" {
   name          = "CVpnPrereq"
   template_body = file("${path.module}/10-minute-aws-client-vpn-prereq.yaml")
+
+  capabilities = ["CAPABILITY_IAM"]
 }
 
 
 
 data "aws_iam_role" "cvpn_deploy" {
-  name = aws_cloudformation_stack.outputs["DeploymentRoleName"]
+  name = aws_cloudformation_stack.cvpn_prereq.outputs["DeploymentRoleName"]
 }
 
 
@@ -345,20 +347,18 @@ data "aws_security_group" "cvpn_client" {
   id = data.aws_ssm_parameter.cvpn_client_sec_grp_id[0].insecure_value
 }
 output "cvpn_client_sec_grp_id" {
-  value       = try(data.aws_security_group.cvpn_client.id, null)
+  value       = try(data.aws_security_group.cvpn_client[0].id, null)
   description = "ID of the generic security group for Client VPN clients. Defined only if not custom security groups were supplied (see the CustomClientSecGrpIds CloudFormation stack parameter."
 }
 
 data "aws_ec2_client_vpn_endpoint" "cvpn" {
   tags = {
-    "aws:cloudformation:stack-name" = aws_cloudformation_stack.cvpn.name
-    # Could use
-    # "aws:cloudformation:stack-id" = aws_cloudformation_stack.cvpn.id
-    # but stack name is meaningful to humans, and CloudFormation does not allow
-    # duplicates.
+    Name = aws_cloudformation_stack.cvpn.name
+    # Not yet available, as of 2025-10:
+    # "aws:cloudformation:stack-name" = aws_cloudformation_stack.cvpn.name
   }
 }
 output "cvpn_endpoint_id" {
   value       = data.aws_ec2_client_vpn_endpoint.cvpn.client_vpn_endpoint_id
-  description = "ID of the Client VPN endpoint. The self-service portal is not available, due to use of mutual TLS authentication. Download the VPN client configuration file using the AWS Console (VPC service) or the command-line interface: aws ec2 export-client-vpn-client-configuration --output text --client-vpn-endpoint-id 'cvpn-endpoint-123456789123abcde'"
+  description = "ID of the Client VPN endpoint. The self-service portal is not available, due to use of mutual TLS authentication. Download the VPN client configuration file using the AWS Console (VPC service) or the command-line interface: aws ec2 export-client-vpn-client-configuration --output text --client-vpn-endpoint-id 'cvpn-endpoint-00123456789abcdef'"
 }

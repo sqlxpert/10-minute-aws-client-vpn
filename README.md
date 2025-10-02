@@ -12,26 +12,27 @@ in about 10&nbsp;minutes and operate it for $1.41 per work day!
 The baseline charge of 10¢ per hour amounts to $876 per year for one
 Availability Zone. Add 5¢ per hour per connection. Assuming a 40-hour work
 week, that is $104 per year per person, for a minimum total cost of
-$876&nbsp;+&nbsp;$104&nbsp;=&nbsp;$980 per year. How this template minimizes
-costs:
+$876&nbsp;+&nbsp;$104&nbsp;=&nbsp;$980 per year.
+
+How this template minimizes costs:
 
  1. [Split-tunneling](https://en.wikipedia.org/wiki/Split_tunneling).
     Only AWS private network (VPC) traffic uses the VPN.
 
  2. Single Availability Zone default.
     [VPN clients can access VPC resources in any Availability Zone in the same
-    region at no extra charge].
+    region at no extra charge](https://aws.amazon.com/about-aws/whats-new/2022/04/aws-data-transfer-price-reduction-privatelink-transit-gateway-client-vpn-services/).
 
  3. Optional on/off scheduling with
-    [github.com/sqlxpert/lights-off-aws](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule).
-
+    [github.com/sqlxpert/lights-off-aws](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule)&nbsp;.
     Leaving the VPN on 50&nbsp;hours a week reduces the baseline cost to $261.
     With one person actually connected for 40&nbsp;hours, the minimum total
     cost drops to $261&nbsp;+&nbsp;$104&nbsp;=&nbsp;$365 per year. Dividing by
     260&nbsp;work days yields $1.41&nbsp;.
 
-US-East-1 regional prices were checked March&nbsp;20,&nbsp;2025 but can change
-at any time. NAT gateway, data transfer, and other charges may also apply.
+> US-East-1 regional prices were checked March&nbsp;20,&nbsp;2025 but can
+change at any time. NAT gateway, data transfer, and other charges may also
+apply.
 
 <details>
   <summary>Rationale for connecting to AWS with a VPN</summary>
@@ -190,14 +191,12 @@ configuration file and re-import.
 ### Files Required for Terraform
 
 Copy
-&nbsp;
 [10-minute-aws-client-vpn.tf](/10-minute-aws-client-vpn.tf?raw=true)
 &nbsp;
 [10-minute-aws-client-vpn.yaml](/10-minute-aws-client-vpn.yaml?raw=true)
 &nbsp;
 [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml?raw=true)
-&nbsp;
-to your root Terraform module.
+to the directory containing your root Terraform module.
 <!-- White space instead of commas, in case users paste to the command line -->
 
 In a `terraform.tfvars` file in the same directory, set:

@@ -427,7 +427,9 @@ Resources:
         - ResourceType: client-vpn-endpoint
           Tags:
             - Key: Name
-              Value: !Sub "${AWS::StackName}-Endpoint"
+              Value: !Ref AWS::StackName
+              # As of 2025-10, CloudFormation does not set default tags such as
+              # aws:cloudformation:stack-name for this resource type.
 
   EndpointIdParam:
     Type: AWS::SSM::Parameter
@@ -444,7 +446,7 @@ Resources:
           AWS Console (VPC service) or the command-line interface:
           aws ec2 export-client-vpn-client-configuration
             --output text
-            --client-vpn-endpoint-id 'cvpn-endpoint-123456789123abcde'
+            --client-vpn-endpoint-id 'cvpn-endpoint-00123456789abcdef'
           .
           To avoid a hard dependency, find the endpoint by its
           "aws:cloudformation:stack-name" tag instead.
