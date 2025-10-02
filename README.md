@@ -230,8 +230,9 @@ Replace _TAG_ with a specific version from
 Always reference a specific version &#9888;.
 
 Edit the subnet&nbsp;ID to match the ID of a subnet in the VPN's primary (or
-sole) Availability Zone. The module will replace the `CURRENT_AWS_ACCOUNT` and
-`CURRENT_AWS_REGION` literals with an AWS account number and a region code.
+sole) Availability Zone. The module (not you!) replaces the
+`CURRENT_AWS_ACCOUNT` and `CURRENT_AWS_REGION` literals with the AWS account
+number and region code.
 
 Before proceeding, have Terraform download the module's source code:
 
@@ -307,7 +308,7 @@ Terraform permission to:
 Open the
 [AWS Service Authorization Reference](https://docs.aws.amazon.com/service-authorization/latest/reference/reference_policies_actions-resources-contextkeys.html#actions_table),
 go through the list of services on the left, and consult the "Actions" table
-for:
+for each of:
 
 - `CloudFormation`
 - `AWS Identity and Access Management (IAM)`
