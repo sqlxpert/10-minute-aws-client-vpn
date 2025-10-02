@@ -278,13 +278,51 @@ Edit the subnet&nbsp;ID.
 
 ### Installing with Terraform
 
-Terraform must have permission to:
+<details>
+  <summary>If you run Terraform with least-privilege permissions...</summary>
 
+<br/>
+
+Most people do not need to read this section, because most Terraform users
+grant full AWS administrative permissions to Terraform.
+
+If, given the serious security risks associated with the typical approach, you
+instead follow the principle of least privilege for Terraform, you must give
+Terraform permission to:
+
+- List, describe, create, update and delete CloudFormation stacks
+- Set and get CloudFormation stack policies
 - List, describe, get tags for, create, tag, update and delete IAM roles and
   their in-line policies
+- Pass `CVpnPrereq-DeploymentRole-*` to CloudFormation
 - List, describe, and get tags for, all of the `data` sources in
   [10-minute-aws-client-vpn.tf](/10-minute-aws-client-vpn.tf)
-- Pass `CVpnPrereq-DeploymentRole-*` to CloudFormation
+
+  For a list, run:
+
+  ```shell
+  grep 'data "' 10-minute-aws-client-vpn.tf
+  ```
+
+Open the
+[AWS Service Authorization Reference](https://docs.aws.amazon.com/service-authorization/latest/reference/reference_policies_actions-resources-contextkeys.html#actions_table),
+go through the list of services on the left, and consult the "Actions" table
+for:
+
+- `CloudFormation`
+- `AWS Identity and Access Management (IAM)`
+- `Amazon EC2`
+- `AWS Security Token Service`
+- `AWS Certificate Manager`
+- `AWS Systems Manager`
+- `AWS Key Management Service` (if you encrypt the CloudWatch log group)
+
+The CloudFormation service role (deployment role) defined in the `CVpnPrereq`
+stack is passed to CloudFormation so that CloudFormation has the permissions it
+needs to create the `CVpn` stack. Terraform itself does not need the
+deployment role's permissions.
+
+</details>
 
 Follow the
 [Quick Installation](#quick-installation)
