@@ -184,9 +184,9 @@ exposure to the public Internet.
 
  4. Find your VPN in the list of
     [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
-    in the AWS Console and check that its Target network association(s) are
+    in the AWS Console and check that its "Target network associations" are
     being created and deleted as scheduled. Check actual costs after a few
-    days, and set up alerts in
+    days, and set up alerts with
     [AWS Budgets](https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html).
 
 ## Parameter Updates
