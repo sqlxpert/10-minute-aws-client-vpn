@@ -32,7 +32,7 @@ How this template minimizes costs:
     |Endpoint associated|10¢|168|8,760|$876|
     |1&nbsp;client connected|5¢|40|2,080|$104|
     |Total||||$980|
-    |_Work&nbsp;days&nbsp;only:_|||||
+    |_Work&nbsp;hours&nbsp;only:_|||||
     |Endpoint associated|10¢|**50**|**2,607**|**$261**|
     |1&nbsp;client connected|5¢|40|2,080|$104|
     |Total||||**$365**|
@@ -63,85 +63,102 @@ exposure to the public Internet.
 
 ## Quick Installation
 
+> Before you begin, take a deep breath! Setup is shorter than it looks. It's a good idea to read each step completely before you start it. Unfortunately, you will have to switch back and forth between this ReadMe file and AWS's documentation.
+>
+> You do not need to be an expert to get started. After your AWS Client VPN is up and running, you can learn more at your own pace, by reading the descriptions of the optional parameters and examining the templates.
+>
+> [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html)
+might be useful for setup and maintenance, but be aware of
+[limitations on persistent storage](https://docs.aws.amazon.com/cloudshell/latest/userguide/limits.html#persistent-storage-limitations)
+if you use your free CloudShell home directory to store your certificate authority
+(and Terraform state, if you use the
+[Terraform option](#terraform-option)).
+
  1. Follow AWS's
     [mutual authentication steps](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-auth-mutual-enable.html).
 
-    Copy the individual Linux/macOS commands and execute them verbatim.
+    - Copy the _individual_ Linux/macOS commands and execute them verbatim.
 
-    Copy and edit the block of commands before executing those. Not replacing
-    _custom_folder_ is fine for now, but after the `mkdir` line, insert:
+    - Copy and edit the _block_ of commands before executing those. Not
+      replacing `custom_folder` is actually fine for now (if only AWS's
+      technical writers had picked a meaningful folder name instead of a
+      placeholder!), but after the `mkdir` line, please insert:
 
-    ```bash
-    chmod go= ~/custom_folder
-    ```
+      ```shell
+      chmod go= ~/custom_folder
+      ```
 
-    After uploading the first (server) certificate, copy the ARN returned by
-    AWS Certificate Manager. There is no need to upload the second (client)
-    certificate.
+    - After uploading the first (server) certificate, copy the ARN returned by
+      AWS Certificate Manager.
+
+    - There is no need to upload the second (client) certificate.
 
  2. _Optional:_ You can use a
     [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
     to delegate only the privileges needed to deploy a Client VPN stack.
-    Create a stack from a locally-saved copy of
-    [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml?raw=true)
-    [right-click to save as...]. Name the stack `CVpnPrereq` .
 
     This step is required only if you plan to use
     [Lights Off](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule)
     to turn the VPN on and off on a schedule.
 
-    Under "Additional settings" &rarr; "Stack policy - optional", you can
-    "Upload a file" and select a locally-saved copy of
-    [10-minute-aws-client-vpn-prereq-policy.json](/10-minute-aws-client-vpn-prereq-policy.json?raw=true)
-    [right-click to save as...]. The stack policy prevents inadvertent
-    replacement or deletion of the deployment role during stack updates,
-    but it cannot prevent deletion of the entire `CVpnPrereq` stack.
+    - Create a stack from a locally-saved copy of
+      [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml?raw=true)
+      [right-click to save as...].
+
+    - Name the stack `CVpnPrereq` .
+
+    - Under "Additional settings" &rarr; "Stack policy - optional", you can
+      "Upload a file" and select a locally-saved copy of
+      [10-minute-aws-client-vpn-prereq-policy.json](/10-minute-aws-client-vpn-prereq-policy.json?raw=true)
+      [right-click to save as...]. The stack policy prevents inadvertent
+      replacement or deletion of the deployment role during stack updates,
+      but it cannot prevent deletion of the entire `CVpnPrereq` stack.
 
  3. Create a CloudFormation stack from a locally-saved copy of
     [10-minute-aws-client-vpn.yaml](/10-minute-aws-client-vpn.yaml?raw=true)
     [right-click to save as...].
 
-    Name the stack `CVpn` .
+    - Name the stack `CVpn` .
 
-    The parameters are thoroughly documented. Set only the Essential ones.
+    - The parameters are thoroughly documented. Set only the "Essential" ones.
 
-    Under "Permissions - optional" &rarr; "IAM role - optional", select
-    `CVpnPrereq-DeploymentRole` _if_ you created the deployment role in the
-    previous step. (If your own privileges are limited, you might
-    need explicit permission to pass the role to CloudFormation. See the
-    `CVpnPrereq-SampleDeploymentRolePassRolePol` IAM policy for an example.)
+    - Under "Permissions - optional" &rarr; "IAM role - optional", select
+      `CVpnPrereq-DeploymentRole` _if_ you created the deployment role in the
+      previous step. (If your own privileges are limited, you might
+      need explicit permission to pass the role to CloudFormation. See the
+      `CVpnPrereq-SampleDeploymentRolePassRolePol` IAM policy for an example.)
 
-    Under "Additional settings" &rarr; "Stack policy - optional", you can
-    "Upload a file" and select a locally-saved copy of
-    [10-minute-aws-client-vpn-policy.json](/10-minute-aws-client-vpn-policy.json?raw=true)
-    [right-click to save as...]. The stack policy prevents replacement or
-    deletion of the VPN endpoint during stack updates, producing an error
-    if you attempt
-    [Parameter Updates](#parameter-updates)
-    that are not possible.
+    - Under "Additional settings" &rarr; "Stack policy - optional", you can
+      "Upload a file" and select a locally-saved copy of
+      [10-minute-aws-client-vpn-policy.json](/10-minute-aws-client-vpn-policy.json?raw=true)
+      [right-click to save as...]. The stack policy prevents replacement or
+      deletion of certain resources during stack updates, producing an error
+      if you attempt
+      [parameter updates](#parameter-updates)
+      that are not possible.
 
  4. Follow
     [Step 7 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config).
 
-    Find your VPN in the list of
-    [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
-    in the AWS Console and download the configuration file from there.
+    - Find your VPN in the list of
+      [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
+      in the AWS Console and download the configuration file from there.
 
-    `cd` to the directory where you downloaded the file and:
+    - `cd` to the directory where you downloaded the file and:
 
-    ```bash
-    chmod go= downloaded-client-config.ovpn
-    ```
+      ```shell
+      chmod go= downloaded-client-config.ovpn
+      ```
 
-    Open the file in your preferred editor, copy the skeleton from AWS's
-    instructions and paste it at the end of the file, then replace the text
-    between the tags with the contents of the
-    `~/custom_folder/client1.domain.tld.crt` certificate file and the
-    `~/custom_folder/client1.domain.tld.key` key file.
+    - Open the file in your preferred editor, copy the skeleton from AWS's
+      instructions and paste it at the end of the file, then replace the text
+      between the tags with the contents of the
+      `~/custom_folder/client1.domain.tld.crt` certificate file and the
+      `~/custom_folder/client1.domain.tld.key` key file.
 
-    Rename `~/custom_folder` and note that you must also continue to protect
-    `easy-rsa/easyrsa3/pki` and `downloaded-client-config.ovpn` , all of which
-    contain copies of your key.
+    - Rename `~/custom_folder` and note that you must also continue to protect
+      `easy-rsa/easyrsa3/pki` and `downloaded-client-config.ovpn` . All three
+      contain copies of your key.
 
  5. Download either the latest
     [OpenVPN](https://openvpn.net) client (Resources &rarr; Connect Client
@@ -158,7 +175,7 @@ exposure to the public Internet.
 
  9. Test. On your local computer, run:
 
-    ```bash
+    ```shell
     ssh -i PRIVATE_KEY_FILE ec2-user@IP_ADDRESS
     ```
 
@@ -210,17 +227,15 @@ exposure to the public Internet.
 You can toggle the `Enable` parameter.
 
 You can add or remove a backup subnet (second Availability Zone) even while
-the VPN is enabled. You can also switch between generic and custom security
-groups.
+the VPN is enabled. You can also switch between generic and custom VPN client
+security groups.
 
-Do not try to change the VPC, the IP address ranges, or the paths after you
-have created the `CVpn` stack. Instead, create a `CVpn2` stack, delete your
-original `CVpn` stack, then update the _remote_ line of your client
-configuration file and re-import.
-
-The
+Do not try to change the VPC, the IP address ranges, or the path parameters
+after you have created the `CVpn` stack. Instead, create a `CVpn2` stack,
+delete your original `CVpn` stack, then update the _remote_ line of your client
+configuration file and re-import. The optional
 [10-minute-aws-client-vpn-policy.json](/10-minute-aws-client-vpn-policy.json)
-stack policy prevents most of these changes.
+stack policy protects against most of these changes.
 
 ## Terraform Option
 
@@ -309,8 +324,7 @@ Terraform permission to:
   their in-line policies
 - Pass `CVpnPrereq-DeploymentRole-*` to CloudFormation
 - List, describe, and get tags for, all of the `data` sources in
-  [10-minute-aws-client-vpn.tf](/10-minute-aws-client-vpn.tf)
-
+  [10-minute-aws-client-vpn.tf](/10-minute-aws-client-vpn.tf)&nbsp;.
   For a list, run:
 
   ```shell
@@ -328,29 +342,33 @@ for each of:
 - `AWS Security Token Service`
 - `AWS Certificate Manager`
 - `AWS Systems Manager`
-- `AWS Key Management Service` (if you encrypt the CloudWatch log group)
+- `AWS Key Management Service` (if you encrypt the CloudWatch log group with a
+  KMS key)
 
-The CloudFormation service role (deployment role) defined in the `CVpnPrereq`
-stack is passed to CloudFormation so that CloudFormation has the permissions it
-needs to create the `CVpn` stack. Terraform itself does not need the
-deployment role's permissions.
+The deployment role defined in the `CVpnPrereq` stack gives CloudFormation the
+permissions it needs to create the `CVpn` stack. Terraform itself does not need
+the deployment role's permissions.
 
 </details>
 
 Follow the
 [Quick Installation](#quick-installation)
-instructions, except that Step&nbsp;2 is handled automatically and that in
-place of Step&nbsp;3, you will tag the VPN certificate(s) you've uploaded,
-before using _Terraform_ to install the `CVpnPrereq` and `CVpn` CloudFormation
-stacks. If you did not upload a client certificate, apply both tags to the
-_server_ certificate.
+instructions, except that:
 
-```shell
-aws acm add-tags-to-certificate --tags 'Key=CVpnServer,Value=' --certificate-arn 'SERVER_CERT_ARN'
-aws acm add-tags-to-certificate --tags 'Key=CVpnClientRootChain,Value=' --certificate-arn 'CLIENT_CERT_ARN'
+- Step&nbsp;2 is handled automatically.
+- In place of Step&nbsp;3, you will tag the VPN certificate(s) you've uploaded,
+  before using _Terraform_ to install the `CVpnPrereq` and `CVpn`
+  CloudFormation stacks.
 
-terraform apply
-```
+  If you did not upload a client certificate, apply both tags to the _server_
+  certificate.
+
+  ```shell
+  aws acm add-tags-to-certificate --tags 'Key=CVpnServer,Value=' --certificate-arn 'SERVER_CERT_ARN'
+  aws acm add-tags-to-certificate --tags 'Key=CVpnClientRootChain,Value=' --certificate-arn 'CLIENT_CERT_ARN'
+
+  terraform apply
+  ```
 
 Remember to **turn on the VPN** &#9888; by changing the `Enable` parameter of
 the `CVpn` stack to `true`, in CloudFormation. The Terraform option leaves the
@@ -373,20 +391,23 @@ to the inner `accounts_to_regions_to_cvpn_params` map. Edit the tag values.
 
 ### Referencing Outputs in Terraform
 
-For the VPN endpoint ID, reference
-`data.aws_ec2_client_vpn_endpoint.cvpn.client_vpn_endpoint_id` (output:
-`cvpn_endpoint_id`&nbsp;).
+For the VPN endpoint ID, reference the `module.cvpn.cvpn_endpoint_id` output.
+If you chose to create the VPN in your root Terraform module rather than in a
+child module, `data.aws_ec2_client_vpn_endpoint.cvpn` is provided for you.
 
-To accept traffic from VPN clients, reference
-`data.aws_security_group.vpn_client.id` (output:
-`cvpn_client_sec_grp_id`&nbsp;) in
+To accept traffic from VPN clients, reference the
+`module.cvpn.cvpn_client_sec_grp_id` output in:
 
 - `aws_vpc_security_group.ingress.security_groups` _or_
 - `aws_vpc_security_group_ingress_rule.referenced_security_group_id`
 
-when you define security groups for your servers or listeners. This data
-source and output are not available &#9888; if you supplied
-`CustomClientSecGrpIds`.
+when you define security groups for your servers or listeners.
+
+If you chose to create the VPN in your root module,
+`data.aws_security_group.cvpn_client[0]` is provided.
+
+The security group output and data source are not available &#9888; if you
+supplied `CustomClientSecGrpIds`.
 
 ### Customizing the Terraform Option
 
