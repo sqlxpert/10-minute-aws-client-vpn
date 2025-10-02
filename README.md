@@ -30,8 +30,8 @@ How this template minimizes costs:
     cost drops to $261&nbsp;+&nbsp;$104&nbsp;=&nbsp;$365 per year. Dividing by
     260&nbsp;work days yields $1.41&nbsp;.
 
-> US-East-1 regional prices were checked March&nbsp;20,&nbsp;2025 but can
-change at any time. NAT gateway, data transfer, and other charges may also
+> Prices in the `us-east-1` region were checked March&nbsp;20,&nbsp;2025 but
+can change at any time. NAT gateway, data transfer, and other charges may also
 apply.
 
 <details>
@@ -153,19 +153,20 @@ exposure to the public Internet.
  3. Update your `CVpn` CloudFormation stack, adding the following stack-level
     tags:
 
-    - `sched-set-Enable-true` : `u=1 u=2 u=3 u=4 u=5 H:M=14:00`
+    - `sched-set-Enable-true` : `u=1 u=2 u=3 u=4 u=5 H:M=11:00`
     - `sched-set-Enable-false` : `u=2 u=3 u=4 u=5 u=6 H:M=01:00`
 
-    Adjust the weekdays and the times based on your work schedule.
+    Adjust the weekdays and the times based on your work schedule. This example
+    is suitable for the mainland portions of the United States and Canada.
 
     - `u=1` is Monday and `u=7` is Sunday, per
       [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Week_dates).
     - Times are in Universal Coordinated Time (UTC). This converter may be
       helpful:
-      [www.timeanddate.com](https://www.timeanddate.com/worldclock/converter.html?iso=20250320T140000&p1=224&p2=250&p3=1440&p4=37&p5=44)
+      [www.timeanddate.com](https://www.timeanddate.com/worldclock/converter.html?iso=20250320T110000&p1=224&p2=250&p3=1440&p4=37&p5=44)
       .
     - UTC has no provision for Daylight Saving Time/Summer Time. Leave a
-      buffer after your work day to avoid having to change schedules.
+      buffer at the end of your work day to avoid having to change schedules.
 
  4. Find your VPN in the list of
     [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
@@ -208,16 +209,25 @@ accounts_to_regions_to_cvpn_params = {
     "CURRENT_AWS_REGION" = {
       "TargetSubnetIds" = [
         "subnet-10123456789abcdef",
-      ],
+      ]
     }
   }
 }
 ```
 
-Edit the subnet&nbsp;ID in `TargetSubnetIds` to match the ID of a subnet in
-the VPN's primary (or sole) Availability Zone.
+Edit the subnet&nbsp;ID to match the ID of a subnet in the VPN's primary (or
+sole) Availability Zone. Do not alter `CURRENT_AWS_ACCOUNT` or
+`CURRENT_AWS_REGION`, literal key names that will automatically be replaced
+with an AWS account number and a region code.
 
 ### Installing with Terraform
+
+Terraform must have permission to:
+
+- Create, tag, update and delete IAM roles and their in-line policies
+- List, describe, and get tags for, all of the resource types mentioned in
+  [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml)
+- Pass `CVpnPrereq-DeploymentRole-*` to CloudFormation
 
 Follow the
 [Quick Installation](#quick-installation)
@@ -234,19 +244,24 @@ aws acm add-tags-to-certificate --tags 'Key=CVpnClientRootChain,Value=' --certif
 terraform apply
 ```
 
-You must be sure to give Terraform permission to:
+Remember to &#9888; **turn the VPN on** by changing the `Enable` parameter of
+the `CVpn` stack to `true`, in CloudFormation. The Terraform option leaves the
+VPN off initially.
 
-- Create, tag, update and delete IAM roles and their in-line policies
-- Pass the `CVpnPrereq-DeploymentRole*` IAM role to CloudFormation
-
-The Terraform option is fully compatible with
+The Terraform option is compatible with
 [Automatic Scheduling](#automatic-scheduling).
-You can turn the VPN on and off by toggling the `Enable` parameter of the
-`CVpn` stack in CloudFormation. `terraform plan` will not show unapplied
-changes.
+`terraform plan` will not show unapplied changes when the `Enable` parameter
+value is changed in CloudFormation. To have Terraform set the schedule tags,
+add
 
-&#9888; **Remember to turn the VPN on!** The Terraform option leaves it off
-initially.
+```terraform
+      "schedule_tags" = {
+        "sched-set-Enable-true"  = "u=1 u=2 u=3 u=4 u=5 H:M=11:00"
+        "sched-set-Enable-false" = "u=2 u=3 u=4 u=5 u=6 H:M=01:00"
+      }
+```
+
+to the inner `accounts_to_regions_to_cvpn_params` map. Edit the tag values.
 
 ### Referencing the Client VPN Endpoint in Terraform
 

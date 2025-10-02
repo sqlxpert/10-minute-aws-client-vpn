@@ -70,15 +70,15 @@ variable "accounts_to_regions_to_cvpn_params" {
         ],
 
         # Optional:
-        "DestinationIpv4CidrBlock" = "",
-        "DnsServerIpv4Addr"        = "",
-        "ClientIpv4CidrBlock"      = "",
+        "DestinationIpv4CidrBlock" = ""
+        "DnsServerIpv4Addr"        = ""
+        "ClientIpv4CidrBlock"      = ""
         "CustomClientSecGrpIds" = [
           # "sg-10123456789abcdef",
         ]
         "schedule_tags" = {
-          "sched-set-Enable-true"  = "",
-          "sched-set-Enable-false" = "",
+          "sched-set-Enable-true"  = ""
+          "sched-set-Enable-false" = ""
         }
       }
     }
@@ -260,7 +260,7 @@ resource "aws_cloudformation_stack" "cvpn" {
   lifecycle {
     ignore_changes = [
       parameters["Enable"]
-      # To turn the VPN on and off, toggle this parameter from CloudFormation,
+      # To turn the VPN on and off, toggle this parameter in CloudFormation,
       # not in Terraform.
     ]
   }
