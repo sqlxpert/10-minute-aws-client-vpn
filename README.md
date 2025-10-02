@@ -206,7 +206,7 @@ configuration file and re-import.
 
 ### Terraform Child Module
 
-To treat this as a child module, add the following to your root Terraform
+To create the VPN in a child module, add the following to your root Terraform
 module:
 
 ```terraform
@@ -246,8 +246,8 @@ terraform init
 
 <br/>
 
-To add the resources to your root Terraform module instead of treating this as
-a child module, copy
+To create the VPN in your root Terraform module instead of in a child module,
+copy
 &nbsp;
 [10-minute-aws-client-vpn.tf](/10-minute-aws-client-vpn.tf?raw=true)
 &nbsp;
@@ -282,9 +282,8 @@ Terraform must have permission to:
 
 - List, describe, get tags for, create, tag, update and delete IAM roles and
   their in-line policies
-- List, describe, and get tags for, all of the resource types mentioned in
-  [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml)
-  and any specific resources referenced in Terraform variables
+- List, describe, and get tags for, all of the `data` sources in
+  [10-minute-aws-client-vpn.tf](/10-minute-aws-client-vpn.tf)
 - Pass `CVpnPrereq-DeploymentRole-*` to CloudFormation
 
 Follow the
@@ -353,9 +352,8 @@ configuration.
 If your subnets happen to be defined in the same Terraform workspace as the
 VPN, you may wish to substitute direct resource references.
 
-You may also wish to treat the Terraform code as a child module, and to change
-the interface (`var.accounts_to_regions_to_cvpn_params`) to suit your
-particular approach to
+You may also wish to change the interface
+(`accounts_to_regions_to_cvpn_params`) to suit your particular approach to
 [Terraform module composition](https://developer.hashicorp.com/terraform/language/modules/develop/composition).
 
 </details>
