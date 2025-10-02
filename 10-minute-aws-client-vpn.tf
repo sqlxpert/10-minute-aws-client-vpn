@@ -66,7 +66,7 @@ variable "accounts_to_regions_to_cvpn_params" {
       "CURRENT_AWS_REGION" = {
         "target_subnet_ids" = [
           # 1st required, 2nd optional
-          # "subnet-20123456789abcdef",
+          # "subnet-10123456789abcdef",
         ],
 
         # Optional:
@@ -109,7 +109,7 @@ locals {
 
   cvpn_params = local.regions_to_cvpn_params[local.region]
 
-  cvpn_client_sec_grp_id_param_path = "/cloudformation"
+  cvpn_ssm_param_path = "/cloudformation"
 }
 
 
@@ -288,7 +288,7 @@ resource "aws_cloudformation_stack" "cvpn" {
       null
     )
 
-    ClientSecGrpIdParamPath = local.cvpn_client_sec_grp_id_param_path
+    SsmParamPath = local.cvpn_ssm_param_path
     CustomClientSecGrpIds = try(
       # Terraform won't convert an HCL list to List<String> for CloudFormation!
       # Error: Inappropriate value for attribute "parameters": element
@@ -319,20 +319,22 @@ resource "aws_cloudformation_stack" "cvpn" {
 
 # The CloudFormation template is self-contained. Resources that you might need
 # to reference can be resolved from inputs that you provided; no stack outputs
-# are needed. If you did not supply your own security group(s) for VPN clients
-# (see the CustomClientSecGrpIds parameter), an AWS SystemsManager (SSM)
-# Parameter Store parameter with a known name identifies the generic VPN client
-# security group created for you. If treating this as a child module, you may
-# wish to define an output for aws_security_group.cvpn_client.id . Unnecessary
-# dependence on module outputs leaves Terraform configurations brittle;
-# pre-defining security group(s) and passing them in lets you refer to them at
-# any stage, dependency-free.
+# are needed.
+
+
+
+# If you did not supply your own security group(s) for VPN clients, an AWS
+# Systems Manager (SSM) Parameter Store parameter with a known name identifies
+# the generic VPN client security group created for you. Unnecessary dependence
+# on module outputs leaves Terraform configurations brittle; pre-defining
+# security group(s) and passing them in lets you refer to them at any stage,
+# dependency-free.
 data "aws_ssm_parameter" "cvpn_client_sec_grp_id" {
   count = try(aws_cloudformation_stack.cvpn.parameters["CustomClientSecGrpIds"], "") == "" ? 1 : 0
   # CustomClientSecGrpIds is a string in HCL, not a list; see above!
 
   name = join("/", [
-    local.cvpn_client_sec_grp_id_param_path,
+    local.cvpn_ssm_param_path,
     aws_cloudformation_stack.cvpn.name,
     "ClientSecGrpId"
   ])
@@ -341,4 +343,22 @@ data "aws_security_group" "cvpn_client" {
   count = try(aws_cloudformation_stack.cvpn.parameters["CustomClientSecGrpIds"], "") == "" ? 1 : 0
 
   id = data.aws_ssm_parameter.cvpn_client_sec_grp_id[0].insecure_value
+}
+output "cvpn_client_sec_grp_id" {
+  value       = try(data.aws_security_group.cvpn_client.id, null)
+  description = "ID of the generic security group for Client VPN clients. Defined only if not custom security groups were supplied (see the CustomClientSecGrpIds CloudFormation stack parameter."
+}
+
+data "aws_ec2_client_vpn_endpoint" "cvpn" {
+  tags = {
+    "aws:cloudformation:stack-name" = aws_cloudformation_stack.cvpn.name
+    # Could use
+    # "aws:cloudformation:stack-id" = aws_cloudformation_stack.cvpn.id
+    # but stack name is meaningful to humans, and CloudFormation does not allow
+    # duplicates.
+  }
+}
+output "cvpn_endpoint_id" {
+  value       = data.aws_ec2_client_vpn_endpoint.cvpn.client_vpn_endpoint_id
+  description = "ID of the Client VPN endpoint. The self-service portal is not available, due to use of mutual TLS authentication. Download the VPN client configuration file using the AWS Console (VPC service) or the command-line interface: aws ec2 export-client-vpn-client-configuration --output text --client-vpn-endpoint-id 'cvpn-endpoint-123456789123abcde'"
 }

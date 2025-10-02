@@ -3,51 +3,46 @@
 ## Goals
 
 This CloudFormation template
-([Terraform wrapper also provided](#terraform-tips))
-helps you set up an AWS-managed VPN in about 10&nbsp;minutes and operate it for
-as little as $1.41 per work day!
-
-Client VPN is convenient because AWS manages it for you. It is
-[well-documented](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/what-is.html),
-but there are pitfalls for new users.
+(+&nbsp;[Terraform option](#terraform-option))
+helps you set up an
+[AWS-managed VPN](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/what-is.html)
+in about 10&nbsp;minutes and operate it for $1.41 per work day!
 
 [Client VPN is expensive](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing).
-The baseline charge of 10¢ per hour per Availability Zone amounts to $876 per
-year. Add 5¢ per hour per connection. Assuming a 40-hour work week, that is
-$104 per year per person, for a minimum total cost of
-$876&nbsp;+&nbsp;$104&nbsp;=&nbsp;$980 per year. At least AWS now throws in
-[free Client VPN data transfer between Availability Zones](https://aws.amazon.com/about-aws/whats-new/2022/04/aws-data-transfer-price-reduction-privatelink-transit-gateway-client-vpn-services/)!
+The baseline charge of 10¢ per hour amounts to $876 per year for one
+Availability Zone. Add 5¢ per hour per connection. Assuming a 40-hour work
+week, that is $104 per year per person, for a minimum total cost of
+$876&nbsp;+&nbsp;$104&nbsp;=&nbsp;$980 per year. How this template minimizes
+costs:
 
-The template minimizes costs by:
+ 1. [Split-tunneling](https://en.wikipedia.org/wiki/Split_tunneling).
+    Only AWS private network (VPC) traffic uses the VPN.
 
- 1. Using only one Availability Zone by default. Clients can access resources
-    in any zone.
+ 2. Single Availability Zone default.
+    [VPN clients can access VPC resources in any Availability Zone in the same
+    region at no extra charge].
 
- 2. Sending only AWS private network (VPC) traffic over the VPN
-    ("split-tunnel").
-
- 3. Optionally integrating with
-    [Lights Off](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule),
-    which can turn the VPN on and off on a schedule.
+ 3. Optional on/off scheduling with
+    [github.com/sqlxpert/lights-off-aws](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule).
 
     Leaving the VPN on 50&nbsp;hours a week reduces the baseline cost to $261.
     With one person actually connected for 40&nbsp;hours, the minimum total
     cost drops to $261&nbsp;+&nbsp;$104&nbsp;=&nbsp;$365 per year. Dividing by
     260&nbsp;work days yields $1.41&nbsp;.
 
-US-East-1 region prices were checked March&nbsp;20,&nbsp;2025 but can change at
-any time. NAT gateway, data transfer, and other charges may also apply.
+US-East-1 regional prices were checked March&nbsp;20,&nbsp;2025 but can change
+at any time. NAT gateway, data transfer, and other charges may also apply.
 
 <details>
-  <summary>Rationale for connecting to AWS over a VPN</summary>
+  <summary>Rationale for connecting to AWS with a VPN</summary>
 
-Experts discourage relying on the strength of the perimeter around your
-private network, but sometimes, perimeter security _is_ the available defense,
-and a virtual private network connection is necessary. For example, to access
-an AWS Elastic File System (EFS) volume from your local computer, you must use
-a VPN, so that the Network File System (NFS) client connection originates
-_inside_ your AWS Virtual Private Cloud (VPC). NFS server software was not
-designed for exposure to the public Internet.
+Experts discourage relying on the strength of the perimeter around your private
+network, but sometimes, perimeter security _is_ the available defense, and a
+virtual private network connection is necessary. For example, to access an AWS
+Elastic File System (EFS) volume from your local computer, you must use a VPN,
+so that the Network File System (NFS) client connection originates _inside_
+your AWS Virtual Private Cloud (VPC). NFS server software was not designed for
+exposure to the public Internet.
 
 </details>
 
@@ -190,15 +185,20 @@ have created the `CVpn` stack. Instead, create a `CVpn2` stack, delete your
 original `CVpn` stack, then update the _remote_ line of your client
 configuration file and re-import.
 
-## Terraform Tips
+## Terraform Option
 
 ### Files Required for Terraform
 
 Copy
+&nbsp;
 [10-minute-aws-client-vpn.tf](/10-minute-aws-client-vpn.tf?raw=true)
+&nbsp;
 [10-minute-aws-client-vpn.yaml](/10-minute-aws-client-vpn.yaml?raw=true)
+&nbsp;
 [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml?raw=true)
+&nbsp;
 to your root Terraform module.
+<!-- White space instead of commas, in case users paste to the command line -->
 
 In a `terraform.tfvars` file in the same directory, set:
 
@@ -207,7 +207,7 @@ accounts_to_regions_to_cvpn_params = {
   "CURRENT_AWS_ACCOUNT" = {
     "CURRENT_AWS_REGION" = {
       "target_subnet_ids" = [
-        "subnet-0cec32cd29b245a7d",
+        "subnet-10123456789abcdef",
       ],
     }
   }
@@ -236,35 +236,44 @@ terraform apply
 
 You must be sure to give Terraform permission to:
 
-- Create, update and delete IAM roles
-- List, describe, and get tags for, all of the resource types mentioned in
-  [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml)
+- Create, tag, update and delete IAM roles and their in-line policies
 - Pass the `CVpnPrereq-DeploymentRole*` IAM role to CloudFormation
 
-The Terraform-based installation is fully compatible with
+The Terraform option is fully compatible with
 [Automatic Scheduling](#automatic-scheduling).
 You can turn the VPN on and off by toggling the `Enable` parameter of the
 `CVpn` stack in CloudFormation, without making changes in Terraform. `terraform
 plan` will not show any changes.
 
-&#9888; **Remember to turn the VPN on!** The Terraform-based installation
-leaves it off initially.
+&#9888; **Remember to turn the VPN on!** The Terraform option leaves it off
+initially.
 
-### Referencing the Generic VPN Client Security Group in Terraform
+### Referencing the Client VPN Endpoint in Terraform
+
+For the Client VPN endpoint ID, reference
+`data.aws_ec2_client_vpn_endpoint.cvpn.client_vpn_endpoint_id`&nbsp;.
+
+### Referencing the VPN Client Security Group in Terraform
 
 To accept traffic from VPN clients, reference
 `data.aws_security_group.vpn_client.id` in
-`aws_vpc_security_group.ingress.security_groups` or
-`aws_vpc_security_group_ingress_rule.referenced_security_group_id`
+
+- `aws_vpc_security_group.ingress.security_groups` _or_
+- `aws_vpc_security_group_ingress_rule.referenced_security_group_id`
+
 when you define security groups for your servers or listeners.
 
-### Customizing for Your Terraform Configuration
+This does not apply if you supply custom client security group(s).
 
-Most users reference centrally-defined
+### Customizing the Terraform Option
+
+Up-to-date AWS users reference centrally-defined
 [subnets shared through Resource Access Manager](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-sharing.html).
-The Terraform installation relies on data sources, which are appropriate for
-this configuration. If your subnets are defined in the same Terraform workspace
-as the VPN, you may wish to substitute direct resource references.
+The Terraform option relies on data sources, which are appropriate for this
+configuration.
+
+If your subnets happen to be defined in the same Terraform workspace as the
+VPN, you may wish to substitute direct resource references.
 
 You may also wish to treat the Terraform code as a child module, and to change
 the supplied interface (`var.accounts_to_regions_to_cvpn_params`) to suit your
