@@ -105,11 +105,20 @@ exposure to the public Internet.
 
     The parameters are thoroughly documented. Set only the Essential ones.
 
-    _Optional:_ If you created the deployment role in the previous step, set
-    IAM role - optional to `CVpnPrereq-DeploymentRole` later in the `CVpn`
-    stack creation process. (If your own privileges are limited, you might
+    Under "Permissions - optional" &rarr; "IAM role - optional", select
+    `CVpnPrereq-DeploymentRole` _if_ you created the deployment role in the
+    previous step. (If your own privileges are limited, you might
     need explicit permission to pass the role to CloudFormation. See the
     `CVpnPrereq-SampleDeploymentRolePassRolePol` IAM policy for an example.)
+
+    Under "Additional settings" &rarr; "Stack policy - optional", you can
+    "Upload a file" and select a locally-saved copy of
+    [10-minute-aws-client-vpn-policy.json](/10-minute-aws-client-vpn-policy.json?raw=true)
+    [right-click to save as...]. The stack policy prevents replacement or
+    deletion of the VPN endpoint during stack updates, producing an error
+    if you attempt
+    [Parameter Updates](#parameter-updates)
+    that are not possible.
 
  4. Follow
     [Step 7 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config).
@@ -208,6 +217,10 @@ Do not try to change the VPC, the IP address ranges, or the paths after you
 have created the `CVpn` stack. Instead, create a `CVpn2` stack, delete your
 original `CVpn` stack, then update the _remote_ line of your client
 configuration file and re-import.
+
+The
+[10-minute-aws-client-vpn-policy.json](/10-minute-aws-client-vpn-policy.json)
+stack policy prevents most of these changes.
 
 ## Terraform Option
 

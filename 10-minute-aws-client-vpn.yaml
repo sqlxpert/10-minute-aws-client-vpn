@@ -16,6 +16,10 @@ Parameters:
     Type: String
     Default: "CVpn"
 
+  PlaceholderSuggestedStackPolicyBody:
+    Type: String
+    Default: "https://github.com/sqlxpert/10-minute-aws-client-vpn/blob/main/10-minute-aws-client-vpn-policy.json?raw=true"
+
   Enable:
     Type: String
     Description: >-
@@ -189,6 +193,7 @@ Metadata:
         Parameters:
           - PlaceholderHelp
           - PlaceholderSuggestedStackName
+          - PlaceholderSuggestedStackPolicyBody
       - Label:
           default: Essential
         Parameters:
@@ -229,6 +234,8 @@ Metadata:
         default: For help with this stack, see
       PlaceholderSuggestedStackName:
         default: Suggested stack name
+      PlaceholderSuggestedStackPolicyBody:
+        default: Copy suggested stack policy from
       Enable:
         default: Enabled?
       VpcId:

@@ -263,6 +263,8 @@ resource "aws_cloudformation_stack" "cvpn" {
     ]
   }
 
+  policy_body = file("${path.module}/10-minute-aws-client-vpn-policy.json")
+
   tags = {
     sched-set-Enable-true = try(
       local.cvpn_params.schedule_tags["sched-set-Enable-true"],
