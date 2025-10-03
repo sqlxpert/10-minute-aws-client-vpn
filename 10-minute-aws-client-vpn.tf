@@ -53,7 +53,7 @@ terraform {
 
 variable "accounts_to_regions_to_cvpn_params" {
   type        = map(any)
-  description = "Nested map. Outer keys: account number strings, or CURRENT_AWS_ACCOUNT for any one. Intermediate keys: regions such as us-west-2 , or CURRENT_AWS_REGION for any one. Required inner key: TargetSubnetIds , a list with 1 to 2 elements. 1st subnet determines VPC. Optional inner keys: DestinationIpv4CidrBlock , DnsServerIpv4Addr , ClientIpv4CidrBlock , CustomClientSecGrpIds , and schedule_tags . If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Keys mentioned above correspond to CloudFormation stack parameters. If automatic scheduling is configured, set the on and off schedule expressions by adding schedule_tags , a map with keys sched-set-Enable-true and sched-set-Enable-false ."
+  description = "Nested map. Outer keys: account number strings, or CURRENT_AWS_ACCOUNT for any one. Intermediate keys: region code strings such as us-west-2 , or CURRENT_AWS_REGION for any one. Required inner key: TargetSubnetIds , a list with 1 to 2 elements. The 1st subnet determines the VPC, and any other inputs must be in that VPC. Optional inner keys: DestinationIpv4CidrBlock , DnsServerIpv4Addr , ClientIpv4CidrBlock , CustomClientSecGrpIds , and schedule_tags . If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Keys mentioned above correspond to CloudFormation stack parameters. If automatic scheduling is configured, set schedule expressions by adding schedule_tags , a map with keys sched-set-Enable-true and sched-set-Enable-false ."
 
   default = {
     "CURRENT_AWS_ACCOUNT" = {
@@ -123,31 +123,6 @@ data "aws_subnet" "cvpn_target" {
   state  = "available"
 }
 
-data "aws_subnet" "cvpn_vpc_backup_target" {
-  for_each = {
-    for region, cvpn_params in local.regions_to_cvpn_params :
-    region => cvpn_params["TargetSubnetIds"][1]
-    if length(cvpn_params["TargetSubnetIds"]) >= 2
-  }
-
-  region = each.key
-  id     = each.value
-  state  = "available"
-
-  lifecycle {
-    postcondition {
-      condition     = (data.aws_subnet.cvpn_target[each.key].vpc_id == self.vpc_id)
-      error_message = "1st and optional 2nd (backup) subnets must be in same VPC."
-    }
-    postcondition {
-      condition     = (data.aws_subnet.cvpn_target[each.key].availability_zone != self.availability_zone)
-      error_message = "1st and optional 2nd (backup) subnets must cover different availability zones."
-    }
-  }
-}
-
-
-
 data "aws_vpc" "cvpn" {
   for_each = local.cvpn_regions_set
 
@@ -156,7 +131,25 @@ data "aws_vpc" "cvpn" {
   state  = "available"
 }
 
+data "aws_subnet" "cvpn_vpc_backup_target" {
+  for_each = {
+    for region, cvpn_params in local.regions_to_cvpn_params :
+    region => cvpn_params["TargetSubnetIds"][1]
+    if length(cvpn_params["TargetSubnetIds"]) >= 2
+  }
 
+  region = each.key
+  vpc_id = data.aws_vpc.cvpn[each.key].id
+  id     = each.value
+  state  = "available"
+
+  lifecycle {
+    postcondition {
+      condition     = (data.aws_subnet.cvpn_target[each.key].availability_zone != self.availability_zone)
+      error_message = "1st and optional 2nd (backup) subnets must cover different availability zones."
+    }
+  }
+}
 
 data "aws_security_groups" "cvpn_custom_client" {
   for_each = {
@@ -167,15 +160,12 @@ data "aws_security_groups" "cvpn_custom_client" {
 
   region = each.key
   filter {
-    name   = "group-id"
-    values = each.value
+    name   = "vpc-id"
+    values = [data.aws_vpc.cvpn[each.key].id]
   }
-
-  lifecycle {
-    postcondition {
-      condition     = (data.aws_vpc.cvpn[each.key].id == one(toset(self.vpc_ids)))
-      error_message = "All custom VPN client security groups must be in the VPN's target VPC."
-    }
+  filter {
+    name   = "group-id"
+    values = each.value # Already a list
   }
 }
 
