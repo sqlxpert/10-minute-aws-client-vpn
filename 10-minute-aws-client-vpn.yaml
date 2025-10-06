@@ -291,7 +291,7 @@ Rules:
   # (String and List<String> instead of AWS-specific parameter types, which
   # work with Fn::ValueOf and Fn::ValueOfAll ), it is not possible to pre-check
   # that the backup subnet and custom security groups are in the VpcId VPC, or
-  # that the backup target subnet is in different availability zone.
+  # that the backup subnet is in different availability zone.
 
 Conditions:
 
