@@ -269,6 +269,30 @@ Metadata:
       SsmParamPath:
         default: Path of VPN client security group and endpoint ID parameters
 
+Rules:
+
+  TargetSubnetInVpc:
+    Assertions:
+      - AssertDescription: >-
+          TargetSubnetId subnet must be in VpcId VPC
+        Assert: !Equals
+          - !Ref VpcId
+          - !ValueOf [ TargetSubnetId, VpcId ]
+
+  TargetSubnetsDiffer:
+    RuleCondition: !Not [ !Equals [ !Ref BackupTargetSubnetId, "" ] ]
+    Assertions:
+      - AssertDescription: >-
+          BackupTargetSubnetId must be different from TargetSubnetId
+        Assert:
+          !Not [ !Equals [ !Ref TargetSubnetId, !Ref BackupTargetSubnetId ] ]
+
+  # As long as BackupTargetSubnetId and CustomClientSecGrpIds are optional
+  # (String and List<String> instead of AWS-specific parameter types, which
+  # work with Fn::ValueOf and Fn::ValueOfAll ), it is not possible to pre-check
+  # that the backup subnet and custom security groups are in the VpcId VPC, or
+  # that the backup subnet is in different availability zone.
+
 Conditions:
 
   EnableTrue:
@@ -381,7 +405,7 @@ Resources:
 
   LogGroup:
     Type: AWS::Logs::LogGroup
-    DeletionPolicy: Retain
+    DeletionPolicy: RetainExceptOnCreate
     UpdateReplacePolicy: Retain
     Properties:
       LogGroupName: !Sub "${LogGroupPath}/${AWS::StackName}"
