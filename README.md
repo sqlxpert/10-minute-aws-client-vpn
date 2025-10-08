@@ -271,7 +271,7 @@ number and region code.
 
 Before proceeding, have Terraform download the module's source code:
 
-```terraform
+```shell
 terraform init
 ```
 
