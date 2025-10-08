@@ -406,5 +406,5 @@ Outputs:
   DeploymentRoleName:
     Description: >-
       Name (not ARN) of the service role (deployment role) that will be used to
-      deploy the CloudFormation Client VPN stakck.
+      deploy the CloudFormation Client VPN stack.
     Value: !Ref DeploymentRole

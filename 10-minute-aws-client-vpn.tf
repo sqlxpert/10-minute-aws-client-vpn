@@ -213,8 +213,8 @@ data "aws_kms_key" "cvpn_cloudwatch_logs" {
   region = each.key
   key_id = provider::aws::arn_build(
     local.caller_arn_parts["partition"],
-    "kms", # service
-    each.key,
+    "kms",                                           # service
+    each.key,                                        # region
     split(":", var.cvpn_cloudwatch_logs_kms_key)[0], # account
     split(":", var.cvpn_cloudwatch_logs_kms_key)[1]  # resource (key/KEY_ID)
   )
