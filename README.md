@@ -102,7 +102,7 @@ if you use your free CloudShell home directory to store your certificate authori
     to turn the VPN on and off on a schedule.
 
     - Create a stack from a locally-saved copy of
-      [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml?raw=true)
+      [cloudformation/10-minute-aws-client-vpn-prereq.yaml](/cloudformation/10-minute-aws-client-vpn-prereq.yaml?raw=true)
       [right-click to save as...].
 
     - Name the stack `CVpnPrereq` .
@@ -115,7 +115,7 @@ if you use your free CloudShell home directory to store your certificate authori
       but it cannot prevent deletion of the entire `CVpnPrereq` stack.
 
  3. Create a CloudFormation stack from a locally-saved copy of
-    [10-minute-aws-client-vpn.yaml](/10-minute-aws-client-vpn.yaml?raw=true)
+    [cloudformation/10-minute-aws-client-vpn.yaml](/cloudformation/10-minute-aws-client-vpn.yaml?raw=true)
     [right-click to save as...].
 
     - Name the stack `CVpn` .
@@ -130,7 +130,7 @@ if you use your free CloudShell home directory to store your certificate authori
 
     - Under "Additional settings" &rarr; "Stack policy - optional", you can
       "Upload a file" and select a locally-saved copy of
-      [10-minute-aws-client-vpn-policy.json](/10-minute-aws-client-vpn-policy.json?raw=true)
+      [cloudformation/10-minute-aws-client-vpn-policy.json](/cloudformation/10-minute-aws-client-vpn-policy.json?raw=true)
       [right-click to save as...]. The stack policy prevents replacement or
       deletion of certain resources during stack updates, producing an error
       if you attempt
@@ -234,7 +234,7 @@ Do not try to change the VPC, the IP address ranges, or the path parameters
 after you have created the `CVpn` stack. Instead, create a `CVpn2` stack,
 delete your original `CVpn` stack, then update the _remote_ line of your client
 configuration file and re-import. The optional
-[10-minute-aws-client-vpn-policy.json](/10-minute-aws-client-vpn-policy.json)
+[cloudformation/10-minute-aws-client-vpn-policy.json](/cloudformation/10-minute-aws-client-vpn-policy.json)
 stack policy protects against most of these changes.
 
 ## Terraform Option
@@ -246,7 +246,7 @@ module:
 
 ```terraform
 module "cvpn" {
-  source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git?ref=vTAG"
+  source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=vTAG"
 
   accounts_to_regions_to_cvpn_params = {
     "CURRENT_AWS_ACCOUNT" = {
@@ -260,9 +260,9 @@ module "cvpn" {
 }
 ```
 
-Replace _TAG_ with a specific version from
+Replace _vTAG_ with a specific version tag, `v3.0.0` or newer, from
 [Releases](https://github.com/sqlxpert/10-minute-aws-client-vpn/releases).
-Always reference a specific version &#9888;.
+&#9888; Always reference a specific version.
 
 Edit the subnet&nbsp;ID to match the ID of a subnet in the VPN's primary (or
 sole) Availability Zone. The module (not you!) replaces the
@@ -283,8 +283,8 @@ terraform init
 <br/>
 
 To create the VPN in your root Terraform module instead of in a child module,
-copy the `*.tf *.yaml *.json` files to the directory containing your root
-Terraform module.
+copy the `terraform/` and `cloudformation/` directories to the directory
+containing your root Terraform module.
 
 In a `terraform.tfvars` file in the same directory, set:
 

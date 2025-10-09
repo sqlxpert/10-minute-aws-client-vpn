@@ -18,7 +18,7 @@ Parameters:
 
   PlaceholderSuggestedStackPolicyBody:
     Type: String
-    Default: "https://github.com/sqlxpert/10-minute-aws-client-vpn/blob/main/10-minute-aws-client-vpn-policy.json?raw=true"
+    Default: "https://github.com/sqlxpert/10-minute-aws-client-vpn/blob/main/cloudformation/10-minute-aws-client-vpn-policy.json?raw=true"
 
   Enable:
     Type: String

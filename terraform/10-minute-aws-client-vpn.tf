@@ -224,12 +224,12 @@ data "aws_kms_key" "cvpn_cloudwatch_logs" {
 
 resource "aws_cloudformation_stack" "cvpn_prereq" {
   name          = "CVpnPrereq"
-  template_body = file("${path.module}/10-minute-aws-client-vpn-prereq.yaml")
+  template_body = file("${path.module}/../cloudformation/10-minute-aws-client-vpn-prereq.yaml")
 
   capabilities = ["CAPABILITY_IAM"]
 
   policy_body = file(
-    "${path.module}/10-minute-aws-client-vpn-prereq-policy.json"
+    "${path.module}/../cloudformation/10-minute-aws-client-vpn-prereq-policy.json"
   )
 }
 
@@ -243,7 +243,7 @@ data "aws_iam_role" "cvpn_deploy" {
 
 resource "aws_cloudformation_stack" "cvpn" {
   name          = "CVpn"
-  template_body = file("${path.module}/10-minute-aws-client-vpn.yaml")
+  template_body = file("${path.module}/../cloudformation/10-minute-aws-client-vpn.yaml")
 
   lifecycle {
     ignore_changes = [
@@ -253,7 +253,7 @@ resource "aws_cloudformation_stack" "cvpn" {
     ]
   }
 
-  policy_body = file("${path.module}/10-minute-aws-client-vpn-policy.json")
+  policy_body = file("${path.module}/../cloudformation/10-minute-aws-client-vpn-policy.json")
 
   tags = {
     sched-set-Enable-true = try(
