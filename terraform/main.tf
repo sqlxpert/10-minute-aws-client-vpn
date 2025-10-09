@@ -87,6 +87,8 @@ data "aws_acm_certificate" "cvpn_client_root_chain" {
 data "aws_kms_key" "cvpn_cloudwatch_logs" {
   count = try(var.cvpn_params["CloudWatchLogsKmsKey"], "") == "" ? 0 : 1
 
+  # Provider functions added in Terraform v1.8.0
+  # arn_build added in Terraform AWS provider v5.40.0
   key_id = provider::aws::arn_build(
     local.partition,
     "kms", # service
