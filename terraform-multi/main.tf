@@ -163,7 +163,7 @@ data "aws_kms_key" "cvpn_cloudwatch_logs" {
 
 
 resource "aws_cloudformation_stack" "cvpn_prereq" {
-  name          = "CVpnPrereq"
+  name          = "CVpnPrereq${var.cvpn_stack_name_suffix}"
   template_body = file("${path.module}/../cloudformation/10-minute-aws-client-vpn-prereq.yaml")
 
   capabilities = ["CAPABILITY_IAM"]
@@ -182,7 +182,7 @@ data "aws_iam_role" "cvpn_deploy" {
 
 
 resource "aws_cloudformation_stack" "cvpn" {
-  name          = "CVpn"
+  name          = "CVpn${var.cvpn_stack_name_suffix}"
   template_body = file("${path.module}/../cloudformation/10-minute-aws-client-vpn.yaml")
 
   lifecycle {

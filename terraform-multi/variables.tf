@@ -38,3 +38,10 @@ variable "cvpn_cloudwatch_logs_kms_key" {
 
   default = null
 }
+
+variable "cvpn_stack_name_suffix" {
+  type        = string
+  description = "Optional CloudFormation stack name suffix, for blue/green deployments or other scenarios in which multiple stacks created from the same template are needed in the same region, in the same AWS account."
+
+  default = ""
+}
