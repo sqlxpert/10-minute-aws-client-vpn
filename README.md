@@ -241,21 +241,17 @@ stack policy protects against most of these changes.
 
 ### Terraform Child Module
 
-To create the VPN in a child module, add the following to your root Terraform
+To create the VPN in a child module, add the following to your Terraform root
 module:
 
 ```terraform
 module "cvpn" {
   source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=vTAG"
 
-  accounts_to_regions_to_cvpn_params = {
-    "CURRENT_AWS_ACCOUNT" = {
-      "CURRENT_AWS_REGION" = {
-        "TargetSubnetIds" = [
-          "subnet-10123456789abcdef",
-        ]
-      }
-    }
+  cvpn_params = {
+    "TargetSubnetIds" = [
+      "subnet-10123456789abcdef",
+    ]
   }
 }
 ```
@@ -282,21 +278,17 @@ terraform init
 
 <br/>
 
-To create the VPN in your root Terraform module instead of in a child module,
+To create the VPN in your Terraform root module instead of in a child module,
 copy the `terraform/` and `cloudformation/` directories to the directory
 containing your root Terraform module.
 
 In a `terraform.tfvars` file in the same directory, set:
 
 ```terraform
-accounts_to_regions_to_cvpn_params = {
-  "CURRENT_AWS_ACCOUNT" = {
-    "CURRENT_AWS_REGION" = {
-      "TargetSubnetIds" = [
-        "subnet-10123456789abcdef",
-      ]
-    }
-  }
+cvpn_params = {
+  "TargetSubnetIds" = [
+    "subnet-10123456789abcdef",
+  ]
 }
 ```
 
@@ -392,7 +384,7 @@ to the inner `accounts_to_regions_to_cvpn_params` map. Edit the tag values.
 ### Referencing Outputs in Terraform
 
 For the VPN endpoint ID, reference the `module.cvpn.cvpn_endpoint_id` output.
-If you chose to create the VPN in your root Terraform module rather than in a
+If you chose to create the VPN in your Terraform root module rather than in a
 child module, `data.aws_ec2_client_vpn_endpoint.cvpn` is provided for you.
 
 To accept traffic from VPN clients, reference the
@@ -407,7 +399,7 @@ If you chose to create the VPN in your root module,
 `data.aws_security_group.cvpn_client[0]` is provided.
 
 The security group output and data source are not available &#9888; if you
-supplied `CustomClientSecGrpIds`.
+supplied `CustomClientSecGrpIds`&nbsp;.
 
 ### Customizing the Terraform Option
 
