@@ -32,6 +32,13 @@ variable "accounts_to_regions_to_cvpn_params" {
   }
 }
 
+variable "cvpn_tags" {
+  type        = map(any)
+  description = "CloudFormation stack tag map. Keys, all optional, are tag keys. Values are tag values. This takes precedence over the Terraform AWS provider's default_tags and over tags attributes defined by the module, if the same tag key appears here. To remove tags defined by the module, set the terraform and source tags to null . If automatic scheduling is configured, set the sched-set-Enable-true and sched-set-Enable-false tags to schedule expressions that will apply in all regions and all AWS accounts (otherwise, see the accounts_to_regions_to_cvpn_params variable). Warning: CloudFormation propagates stack tags to stack resources, and each AWS service may have different rules for tag key and tag value lengths, characters, and disallowed tag key or tag value contents. CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed."
+
+  default = {}
+}
+
 variable "cvpn_cloudwatch_logs_kms_key" {
   type        = string
   description = "If not set, default non-KMS CloudWatch Logs encryption applies. See the CloudWatchLogsKmsKey CloudFormation stack parameter."

@@ -46,8 +46,6 @@ locals {
   cvpn_regions_set = toset(keys(local.regions_to_cvpn_params))
 
   cvpn_params = local.regions_to_cvpn_params[local.region]
-
-  cvpn_ssm_param_path = "/cloudformation"
 }
 
 
@@ -162,53 +160,8 @@ data "aws_kms_key" "cvpn_cloudwatch_logs" {
 
 
 
-resource "aws_cloudformation_stack" "cvpn_prereq" {
-  name          = "CVpnPrereq${var.cvpn_stack_name_suffix}"
-  template_body = file("${path.module}/../cloudformation/10-minute-aws-client-vpn-prereq.yaml")
-
-  capabilities = ["CAPABILITY_IAM"]
-
-  policy_body = file(
-    "${path.module}/../cloudformation/10-minute-aws-client-vpn-prereq-policy.json"
-  )
-}
-
-
-
-data "aws_iam_role" "cvpn_deploy" {
-  name = aws_cloudformation_stack.cvpn_prereq.outputs["DeploymentRoleName"]
-}
-
-
-
-resource "aws_cloudformation_stack" "cvpn" {
-  name          = "CVpn${var.cvpn_stack_name_suffix}"
-  template_body = file("${path.module}/../cloudformation/10-minute-aws-client-vpn.yaml")
-
-  lifecycle {
-    ignore_changes = [
-      parameters["Enable"]
-      # To turn the VPN on and off, toggle this parameter in CloudFormation,
-      # not in Terraform.
-    ]
-  }
-
-  policy_body = file("${path.module}/../cloudformation/10-minute-aws-client-vpn-policy.json")
-
-  tags = {
-    sched-set-Enable-true = try(
-      local.cvpn_params.schedule_tags["sched-set-Enable-true"],
-      null
-    )
-    sched-set-Enable-false = try(
-      local.cvpn_params.schedule_tags["sched-set-Enable-false"],
-      null
-    )
-  }
-
-  iam_role_arn = data.aws_iam_role.cvpn_deploy.arn
-
-  parameters = {
+locals {
+  cvpn_params_final = {
     Enable = tostring(false)
     # Do not associate the virtual private network (VPN) with the virtual
     # private cloud (VPC) when Terraform creates the CloudFormation stack. AWS
@@ -260,4 +213,52 @@ resource "aws_cloudformation_stack" "cvpn" {
       null
     )
   }
+}
+
+
+
+resource "aws_cloudformation_stack" "cvpn_prereq" {
+  name          = "CVpnPrereq${var.cvpn_stack_name_suffix}"
+  template_body = file("${path.module}/../cloudformation/10-minute-aws-client-vpn-prereq.yaml")
+
+  capabilities = ["CAPABILITY_IAM"]
+  policy_body  = file("${path.module}/../cloudformation/10-minute-aws-client-vpn-prereq-policy.json")
+}
+
+data "aws_iam_role" "cvpn_deploy" {
+  name = aws_cloudformation_stack.cvpn_prereq.outputs["DeploymentRoleName"]
+}
+
+
+
+resource "aws_cloudformation_stack" "cvpn" {
+  name          = "CVpn${var.cvpn_stack_name_suffix}"
+  template_body = file("${path.module}/../cloudformation/10-minute-aws-client-vpn.yaml")
+
+  lifecycle {
+    ignore_changes = [
+      parameters["Enable"]
+      # To turn the VPN on and off, toggle this parameter in CloudFormation,
+      # not in Terraform.
+    ]
+  }
+
+  iam_role_arn = data.aws_iam_role.cvpn_deploy.arn
+  policy_body  = file("${path.module}/../cloudformation/10-minute-aws-client-vpn-policy.json")
+
+  tags = merge(
+    local.cvpn_tags,
+    {
+      sched-set-Enable-true = try(
+        local.cvpn_params.schedule_tags["sched-set-Enable-true"],
+        null
+      )
+      sched-set-Enable-false = try(
+        local.cvpn_params.schedule_tags["sched-set-Enable-false"],
+        null
+      )
+    }
+  )
+
+  parameters = local.cvpn_params_final
 }
