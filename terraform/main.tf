@@ -126,7 +126,8 @@ locals {
       )
 
       CustomClientSecGrpIds = try(
-        # Terraform won't convert an HCL list to List<String> for CloudFormation!
+        # Terraform won't convert an HCL list to List<String> for
+        # CloudFormation!
         # Error: Inappropriate value for attribute "parameters": element
         # "CustomClientSecGrpIds": string required, but have list of string.
         join(",", sort(data.aws_security_groups.cvpn_custom_client.ids)),
