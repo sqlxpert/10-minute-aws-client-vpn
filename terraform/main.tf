@@ -16,8 +16,6 @@
 #
 # https://developer.hashicorp.com/terraform/language/modules/develop/composition
 
-# cvpn_ssm_param_path
-
 
 
 data "aws_subnet" "cvpn_target" {
