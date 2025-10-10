@@ -407,11 +407,8 @@ Up-to-date AWS users reference centrally-defined
 The Terraform option relies on data sources, which are appropriate for this
 configuration.
 
-If your subnets happen to be defined in the same Terraform workspace as the
-VPN, you may wish to substitute direct resource references.
-
-You may also wish to change the interface
-(`accounts_to_regions_to_cvpn_params`) to suit your particular approach to
+You may also wish to change the interface (`cvpn_params`) to suit your
+particular approach to
 [Terraform module composition](https://developer.hashicorp.com/terraform/language/modules/develop/composition).
 
 </details>
