@@ -34,7 +34,7 @@ data "aws_subnet" "cvpn_vpc_backup_target" {
 }
 
 data "aws_security_groups" "cvpn_custom_client" {
-  count = length(try(var.cvpn_params["CustomClientSecGrpIds"], [])) == 0 ? 0 : 1
+  count = length(coalesce(var.cvpn_params["CustomClientSecGrpIds"], [])) == 0 ? 0 : 1
 
   region = local.region
   filter {

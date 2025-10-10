@@ -29,26 +29,27 @@ variable "cvpn_params" {
     LogsRetainDays           = optional(string)
     SsmParamPath             = optional(string, "/cloudformation")
   })
-  description = "VPN CloudFormation stack parameter map. Keys are parameter names from ../cloudformation/10-minute-aws-client-vpn.yaml ; parameters are described there. All values are strings unless otherwise noted. Required key: TargetSubnetId . Because the main subnet determines the VPC, VpcId is not allowed. If BackupTargetSubnetId is specified but the backup subnet is in a different VPC, it will be ignored. For CustomClientSecGrpIds , which in Terraform is a list of strings, custom security groups not in the VPC will be ignored, potentially leading to an empty list and creation of the generic security groups. If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Other optional keys: ClientIpv4CidrBlock , ProtocolAndPort , DnsServerIpv4Addr , LogGroupPath , CloudWatchLogsKmsKey and LogsRetainDays . Because certificates are identified by tag, ServerCertificateArn and ClientRootCertificateChainArn are not allowed."
-
-  validation {
-    error_message = "CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed."
-
-    condition = alltrue(
-      [for value in values(var.cvpn_tags) : length(value) >= 1]
-    )
-  }
+  description = "VPN CloudFormation stack parameter map. Keys are parameter names from ../cloudformation/10-minute-aws-client-vpn.yaml ; parameters are described there. All values are strings unless otherwise noted. Required key: TargetSubnetId . Because the main subnet determines the VPC, VpcId is not allowed. If BackupTargetSubnetId is specified but the backup subnet is in a different VPC, it will be ignored. For CustomClientSecGrpIds , which in Terraform is a list of strings, custom security groups not in the VPC will be ignored, potentially leading to an empty list and creation of the generic security groups. If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Other optional keys: ClientIpv4CidrBlock , ProtocolAndPort , DnsServerIpv4Addr , LogGroupPath , CloudWatchLogsKmsKey , LogsRetainDays and SsmParamPath . Because certificates are identified by tag, ServerCertificateArn and ClientRootCertificateChainArn are not allowed."
 }
 
 
 
 variable "cvpn_schedule_tags" {
   type = object({
-    "sched-set-Enable-true"  = optional(string, "NA")
-    "sched-set-Enable-false" = optional(string, "NA")
+    "sched-set-Enable-true"  = optional(string)
+    "sched-set-Enable-false" = optional(string)
   })
 
   description = "Tag map specifically for the Client VPN CloudFormation stack. Keys, both optional, are tag keys. Values are tag values. This takes precedence over all other sources of tag information. If automatic scheduling is configured, set the sched-set-Enable-true and sched-set-Enable-false tags to schedule expressions. No other keys are allowed. Warning: CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed here."
+
+  validation {
+    error_message = "CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed."
+
+    condition = alltrue([
+      for value in values(var.cvpn_schedule_tags) :
+      (value == null) || (length(value) >= 1)
+    ])
+  }
 }
 
 
@@ -71,9 +72,10 @@ variable "cvpn_tags" {
   validation {
     error_message = "CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed."
 
-    condition = alltrue(
-      [for value in values(var.cvpn_tags) : length(value) >= 1]
-    )
+    condition = alltrue([
+      for value in values(var.cvpn_tags) :
+      (value == null) || (length(value) >= 1)
+    ])
   }
 
   validation {
