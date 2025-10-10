@@ -18,21 +18,20 @@ variable "cvpn_stack_name_suffix" {
 variable "cvpn_params" {
   type = object({
     TargetSubnetId           = string
-    BackupTargetSubnetId     = optional(string)
+    BackupTargetSubnetId     = optional(string, "")
     ClientIpv4CidrBlock      = optional(string, "10.255.252.0/22")
     ProtocolAndPort          = optional(string, "udp 1194")
-    DestinationIpv4CidrBlock = optional(string)
-    DnsServerIpv4Addr        = optional(string)
-    CustomClientSecGrpIds    = optional(list(string))
+    DestinationIpv4CidrBlock = optional(string, "")
+    DnsServerIpv4Addr        = optional(string, "")
+    CustomClientSecGrpIds    = optional(list(string), [])
     LogGroupPath             = optional(string, "/aws/vpc/clientvpn")
-    CloudWatchLogsKmsKey     = optional(string)
+    CloudWatchLogsKmsKey     = optional(string, "")
     LogsRetainDays           = optional(number, 7)
     SsmParamPath             = optional(string, "/cloudformation")
 
-    # Repeat defaults other than the empty string, from
-    # ../cloudformation/10-minute-aws-client-vpn.yaml
+    # Repeat defaults from ../cloudformation/10-minute-aws-client-vpn.yaml
   })
-  description = "VPN CloudFormation stack parameter map. Keys are parameter names from ../cloudformation/10-minute-aws-client-vpn.yaml ; parameters are described there. Required key: TargetSubnetId . Because the main subnet determines the VPC, VpcId is ignored. If BackupTargetSubnetId is specified but that subnet is in a different VPC, no matching subnet will be found and an error will occur. For CustomClientSecGrpIds , custom security groups not in the VPC will be ignored, potentially leading to an empty list and creation of the generic security groups. If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Other optional keys: ClientIpv4CidrBlock , ProtocolAndPort , DnsServerIpv4Addr , LogGroupPath , CloudWatchLogsKmsKey , LogsRetainDays and SsmParamPath . Because certificates are identified by tag, ServerCertificateArn and ClientRootCertificateChainArn are ignored."
+  description = "VPN CloudFormation stack parameter map. Keys are parameter names from ../cloudformation/10-minute-aws-client-vpn.yaml ; parameters are described there. Required key: TargetSubnetId . Because in Terraform the main subnet determines the VPC, VpcId is not allowed. If BackupTargetSubnetId is specified but that subnet is in a different VPC, no matching subnet will be found and an error will occur. For CustomClientSecGrpIds , custom security groups not in the VPC will be ignored, potentially leading to an empty list and creation of the generic security groups. If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Other optional keys: ClientIpv4CidrBlock , ProtocolAndPort , DnsServerIpv4Addr , LogGroupPath , CloudWatchLogsKmsKey , LogsRetainDays and SsmParamPath . Because certificates are identified by tag, ServerCertificateArn and ClientRootCertificateChainArn are not allowed."
 }
 
 
@@ -42,8 +41,9 @@ variable "cvpn_schedule_tags" {
     sched-set-Enable-true  = optional(string)
     sched-set-Enable-false = optional(string)
   })
+  description = "Tag map specifically for the VPN CloudFormation stack. Keys, both optional, are tag keys. Values are tag values. This takes precedence over all other sources of tag information. If automatic scheduling is configured, set the sched-set-Enable-true and sched-set-Enable-false tags to schedule expressions. No other keys are allowed. Warning: CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed here."
 
-  description = "Tag map specifically for the Client VPN CloudFormation stack. Keys, both optional, are tag keys. Values are tag values. This takes precedence over all other sources of tag information. If automatic scheduling is configured, set the sched-set-Enable-true and sched-set-Enable-false tags to schedule expressions. No other keys are allowed. Warning: CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed here."
+  default = {}
 
   validation {
     error_message = "CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed."

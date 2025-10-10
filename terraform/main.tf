@@ -16,7 +16,7 @@ data "aws_vpc" "cvpn" {
 }
 
 data "aws_subnet" "cvpn_vpc_backup_target" {
-  count = var.cvpn_params["BackupTargetSubnetId"] == null ? 0 : 1
+  count = var.cvpn_params["BackupTargetSubnetId"] == "" ? 0 : 1
 
   region = local.region
   vpc_id = data.aws_vpc.cvpn.id
@@ -34,7 +34,7 @@ data "aws_subnet" "cvpn_vpc_backup_target" {
 }
 
 data "aws_security_groups" "cvpn_custom_client" {
-  count = length(coalesce(var.cvpn_params["CustomClientSecGrpIds"], [])) == 0 ? 0 : 1
+  count = min(length(var.cvpn_params["CustomClientSecGrpIds"]), 1)
 
   region = local.region
   filter {
@@ -65,9 +65,10 @@ data "aws_acm_certificate" "cvpn_server" {
 # same certificate authority (CA) can connect, tag it with BOTH CVpnServer AND
 # CVpnClientRootChain .
 data "aws_acm_certificate" "cvpn_client_root_chain" {
-  count = (
-    contains(keys(data.aws_acm_certificate.cvpn_server.tags), "CVpnClientRootChain") ? 0 : 1
-  )
+  count = contains(
+    keys(data.aws_acm_certificate.cvpn_server.tags),
+    "CVpnClientRootChain"
+  ) ? 0 : 1
 
   region = local.region
   tags = {
@@ -80,7 +81,7 @@ data "aws_acm_certificate" "cvpn_client_root_chain" {
 
 
 data "aws_kms_key" "cvpn_cloudwatch_logs" {
-  count = var.cvpn_params["CloudWatchLogsKmsKey"] == null ? 0 : 1
+  count = var.cvpn_params["CloudWatchLogsKmsKey"] == "" ? 0 : 1
 
   region = local.region
   key_id = provider::aws::arn_build(
@@ -110,17 +111,15 @@ locals {
       TargetSubnetId = data.aws_subnet.cvpn_target.id
       BackupTargetSubnetId = try(
         data.aws_subnet.cvpn_vpc_backup_target[0].id,
-        null
+        ""
       )
 
-      CustomClientSecGrpIds = try(
-        # Terraform won't convert an HCL list to List<String> for
-        # CloudFormation!
-        # Error: Inappropriate value for attribute "parameters": element
-        # "CustomClientSecGrpIds": string required, but have list of string.
-        join(",", sort(data.aws_security_groups.cvpn_custom_client[0].ids)),
-
-        null
+      # Terraform won't automatically convert HCL list(string) to
+      # CloudFormation List<String> !
+      # Error: Inappropriate value for attribute "parameters": element
+      # "CustomClientSecGrpIds": string required, but have list of string.
+      CustomClientSecGrpIds = join(",",
+        try(sort(data.aws_security_groups.cvpn_custom_client[0].ids), [])
       )
 
       DestinationIpv4CidrBlock = coalesce(
@@ -131,7 +130,7 @@ locals {
       ServerCertificateArn = data.aws_acm_certificate.cvpn_server.arn
       ClientRootCertificateChainArn = try(
         data.aws_acm_certificate.cvpn_client_root_chain[0].arn,
-        null
+        ""
       )
 
       CloudWatchLogsKmsKey = try(
@@ -139,7 +138,7 @@ locals {
           provider::aws::arn_parse(data.aws_kms_key.cvpn_cloudwatch_logs[0].arn)["account_id"],
           provider::aws::arn_parse(data.aws_kms_key.cvpn_cloudwatch_logs[0].arn)["resource"],
         ]),
-        null
+        ""
       )
     }
   )
