@@ -36,8 +36,8 @@ variable "cvpn_params" {
 
 variable "cvpn_schedule_tags" {
   type = object({
-    "sched-set-Enable-true"  = optional(string)
-    "sched-set-Enable-false" = optional(string)
+    sched-set-Enable-true  = optional(string)
+    sched-set-Enable-false = optional(string)
   })
 
   description = "Tag map specifically for the Client VPN CloudFormation stack. Keys, both optional, are tag keys. Values are tag values. This takes precedence over all other sources of tag information. If automatic scheduling is configured, set the sched-set-Enable-true and sched-set-Enable-false tags to schedule expressions. No other keys are allowed. Warning: CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed here."
