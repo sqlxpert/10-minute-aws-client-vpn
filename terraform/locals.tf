@@ -11,7 +11,7 @@ locals {
   partition = local.caller_arn_parts["partition"]
 
   region = (
-    var.cvp_region == ""
+    var.cvpn_region == ""
     ? data.aws_region.current.region
     : var.cvpn_region
   )

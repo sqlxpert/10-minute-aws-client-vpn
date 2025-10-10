@@ -65,7 +65,9 @@ data "aws_acm_certificate" "cvpn_server" {
 # same certificate authority (CA) can connect, tag it with BOTH CVpnServer AND
 # CVpnClientRootChain .
 data "aws_acm_certificate" "cvpn_client_root_chain" {
-  count = contains(keys(acm_certificate.tags), "CVpnClientRootChain") ? 0 : 1
+  count = (
+    contains(keys(data.aws_acm_certificate.cvpn_server.tags), "CVpnClientRootChain") ? 0 : 1
+  )
 
   region = local.region
   tags = {
@@ -116,7 +118,7 @@ locals {
       TargetSubnetIds = null
       TargetSubnetId  = data.aws_subnet.cvpn_target.id
       BackupTargetSubnetId = try(
-        data.aws_subnet.cvpn_vpc_backup_target.id,
+        data.aws_subnet.cvpn_vpc_backup_target[0].id,
         null
       )
 
@@ -125,21 +127,21 @@ locals {
         # CloudFormation!
         # Error: Inappropriate value for attribute "parameters": element
         # "CustomClientSecGrpIds": string required, but have list of string.
-        join(",", sort(data.aws_security_groups.cvpn_custom_client.ids)),
+        join(",", sort(data.aws_security_groups.cvpn_custom_client[0].ids)),
 
         null
       )
 
       ServerCertificateArn = data.aws_acm_certificate.cvpn_server.arn
       ClientRootCertificateChainArn = try(
-        data.aws_acm_certificate.cvpn_client_root_chain.arn,
+        data.aws_acm_certificate.cvpn_client_root_chain[0].arn,
         null
       )
 
       CloudWatchLogsKmsKey = try(
         join(":", [
-          provider::aws::arn_parse(data.aws_kms_key.cvpn_cloudwatch_logs.arn)["account_id"],
-          provider::aws::arn_parse(data.aws_kms_key.cvpn_cloudwatch_logs.arn)["resource"],
+          provider::aws::arn_parse(data.aws_kms_key.cvpn_cloudwatch_logs[0].arn)["account_id"],
+          provider::aws::arn_parse(data.aws_kms_key.cvpn_cloudwatch_logs[0].arn)["resource"],
         ]),
         null
       )

@@ -246,7 +246,8 @@ module:
 
 ```terraform
 module "cvpn" {
-  source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=vTAG"
+  source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=v4.0.0"
+    # Reference a specific version from github.com/sqlxpert/10-minute-aws-client-vpn/releases
 
   cvpn_params = {
     "TargetSubnetIds" = [
@@ -255,10 +256,6 @@ module "cvpn" {
   }
 }
 ```
-
-Replace _vTAG_ with a specific version tag, `v3.0.0` or newer, from
-[Releases](https://github.com/sqlxpert/10-minute-aws-client-vpn/releases).
-&#9888; Always reference a specific version.
 
 Edit the subnet&nbsp;ID to match the ID of a subnet in the VPN's primary (or
 sole) Availability Zone. The module (not you!) replaces the
