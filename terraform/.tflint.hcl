@@ -1,5 +1,5 @@
-# Start, stop and back up AWS resources tagged with cron schedules
-# github.com/sqlxpert/lights-off-aws/  GPLv3  Copyright Paul Marcelin
+# AWS Client VPN
+# github.com/sqlxpert/10-minute-aws-client-vpn  GPLv3  Copyright Paul Marcelin
 
 plugin "aws" {
   enabled = true
