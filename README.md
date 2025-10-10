@@ -226,9 +226,10 @@ if you use your free CloudShell home directory to store your certificate authori
 
 You can toggle the `Enable` parameter.
 
-You can add or remove a backup subnet (second Availability Zone) even while
-the VPN is enabled. You can also switch between generic and custom VPN client
-security groups.
+You can add or remove a backup subnet (in a second Availability Zone), but you
+must do it while the VPN is enabled or the change won't register.
+
+You can also switch between generic and custom VPN client security groups.
 
 Do not try to change the VPC, the IP address ranges, or the path parameters
 after you have created the `CVpn` stack. Instead, create a `CVpn2` stack,
