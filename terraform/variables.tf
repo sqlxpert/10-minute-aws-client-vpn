@@ -19,17 +19,20 @@ variable "cvpn_params" {
   type = object({
     TargetSubnetId           = string
     BackupTargetSubnetId     = optional(string)
-    ClientIpv4CidrBlock      = optional(string)
-    ProtocolAndPort          = optional(string)
+    ClientIpv4CidrBlock      = optional(string, "10.255.252.0/22")
+    ProtocolAndPort          = optional(string, "udp 1194")
     DestinationIpv4CidrBlock = optional(string)
     DnsServerIpv4Addr        = optional(string)
     CustomClientSecGrpIds    = optional(list(string))
-    LogGroupPath             = optional(string)
+    LogGroupPath             = optional(string, "/aws/vpc/clientvpn")
     CloudWatchLogsKmsKey     = optional(string)
-    LogsRetainDays           = optional(string)
+    LogsRetainDays           = optional(number, 7)
     SsmParamPath             = optional(string, "/cloudformation")
+
+    # Repeat defaults other than the empty string, from
+    # ../cloudformation/10-minute-aws-client-vpn.yaml
   })
-  description = "VPN CloudFormation stack parameter map. Keys are parameter names from ../cloudformation/10-minute-aws-client-vpn.yaml ; parameters are described there. All values are strings unless otherwise noted. Required key: TargetSubnetId . Because the main subnet determines the VPC, VpcId is not allowed. If BackupTargetSubnetId is specified but the backup subnet is in a different VPC, it will be ignored. For CustomClientSecGrpIds , which in Terraform is a list of strings, custom security groups not in the VPC will be ignored, potentially leading to an empty list and creation of the generic security groups. If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Other optional keys: ClientIpv4CidrBlock , ProtocolAndPort , DnsServerIpv4Addr , LogGroupPath , CloudWatchLogsKmsKey , LogsRetainDays and SsmParamPath . Because certificates are identified by tag, ServerCertificateArn and ClientRootCertificateChainArn are not allowed."
+  description = "VPN CloudFormation stack parameter map. Keys are parameter names from ../cloudformation/10-minute-aws-client-vpn.yaml ; parameters are described there. Required key: TargetSubnetId . Because the main subnet determines the VPC, VpcId is ignored. If BackupTargetSubnetId is specified but that subnet is in a different VPC, no matching subnet will be found and an error will occur. For CustomClientSecGrpIds , custom security groups not in the VPC will be ignored, potentially leading to an empty list and creation of the generic security groups. If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Other optional keys: ClientIpv4CidrBlock , ProtocolAndPort , DnsServerIpv4Addr , LogGroupPath , CloudWatchLogsKmsKey , LogsRetainDays and SsmParamPath . Because certificates are identified by tag, ServerCertificateArn and ClientRootCertificateChainArn are ignored."
 }
 
 
