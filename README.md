@@ -250,9 +250,7 @@ module "cvpn" {
     # Reference a specific version from github.com/sqlxpert/10-minute-aws-client-vpn/releases
 
   cvpn_params = {
-    "TargetSubnetIds" = [
-      "subnet-10123456789abcdef",
-    ]
+    "TargetSubnetId" = "subnet-10123456789abcdef"
   }
 }
 ```
@@ -283,9 +281,7 @@ In a `terraform.tfvars` file in the same directory, set:
 
 ```terraform
 cvpn_params = {
-  "TargetSubnetIds" = [
-    "subnet-10123456789abcdef",
-  ]
+  "TargetSubnetId" = "subnet-10123456789abcdef"
 }
 ```
 

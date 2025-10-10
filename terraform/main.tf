@@ -5,7 +5,7 @@
 
 data "aws_subnet" "cvpn_target" {
   region = local.region
-  id     = var.cvpn_params["TargetSubnetIds"][0]
+  id     = var.cvpn_params["TargetSubnetId"]
   state  = "available"
 }
 
@@ -16,11 +16,11 @@ data "aws_vpc" "cvpn" {
 }
 
 data "aws_subnet" "cvpn_vpc_backup_target" {
-  count = length(var.cvpn_params["TargetSubnetIds"]) >= 2 ? 1 : 0
+  count = contains(keys(var.cvpn_params), "BackupTargetSubnetId") ? 1 : 0
 
   region = local.region
   vpc_id = data.aws_vpc.cvpn.id
-  id     = var.cvpn_params["TargetSubnetIds"][1]
+  id     = var.cvpn_params["BackupTargetSubnetId"]
   state  = "available"
 
   lifecycle {
@@ -115,8 +115,7 @@ locals {
 
       VpcId = data.aws_vpc.cvpn.id
 
-      TargetSubnetIds = null
-      TargetSubnetId  = data.aws_subnet.cvpn_target.id
+      TargetSubnetId = data.aws_subnet.cvpn_target.id
       BackupTargetSubnetId = try(
         data.aws_subnet.cvpn_vpc_backup_target[0].id,
         null
