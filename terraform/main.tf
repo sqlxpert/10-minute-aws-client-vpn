@@ -16,7 +16,7 @@ data "aws_vpc" "cvpn" {
 }
 
 data "aws_subnet" "cvpn_vpc_backup_target" {
-  count = contains(keys(var.cvpn_params), "BackupTargetSubnetId") ? 1 : 0
+  count = var.cvpn_params["BackupTargetSubnetId"] == null ? 0 : 1
 
   region = local.region
   vpc_id = data.aws_vpc.cvpn.id
@@ -80,7 +80,7 @@ data "aws_acm_certificate" "cvpn_client_root_chain" {
 
 
 data "aws_kms_key" "cvpn_cloudwatch_logs" {
-  count = try(var.cvpn_params["CloudWatchLogsKmsKey"], "") == "" ? 0 : 1
+  count = var.cvpn_params["CloudWatchLogsKmsKey"] == null ? 0 : 1
 
   region = local.region
   key_id = provider::aws::arn_build(
@@ -98,14 +98,8 @@ data "aws_kms_key" "cvpn_cloudwatch_logs" {
 
 locals {
   cvpn_params = merge(
-    { # TENTATIVE...
-      DestinationIpv4CidrBlock = data.aws_vpc.cvpn.cidr_block
-    },
-
     var.cvpn_params,
-
-    { # FINAL...
-
+    {
       Enable = tostring(false)
       # Do not associate the virtual private network (VPN) with the virtual
       # private cloud (VPC) when Terraform creates the CloudFormation stack. AWS
@@ -127,6 +121,11 @@ locals {
         join(",", sort(data.aws_security_groups.cvpn_custom_client[0].ids)),
 
         null
+      )
+
+      DestinationIpv4CidrBlock = coalesce(
+        var.cvpn_params["DestinationIpv4CidrBlock"],
+        data.aws_vpc.cvpn.cidr_block
       )
 
       ServerCertificateArn = data.aws_acm_certificate.cvpn_server.arn
