@@ -16,7 +16,7 @@ variable "cvpn_stack_name_suffix" {
 
 
 locals {
-  empty_set = set([])
+  empty_set = toset([])
 
   cvpn_params_required_key_set = toset(
     [
@@ -42,8 +42,20 @@ locals {
 }
 
 variable "cvpn_params" {
-  type        = map(any)
-  description = "VPN CloudFormation stack parameter map. Keys are parameter names from ../cloudformation/10-minute-aws-client-vpn.yaml ; parameters are described there. All values are strings unless otherwise noted. Required key: TargetSubnetId . Because the main subnet determines the VPC, VpcId is not allowed. If BackupTargetSubnetId is specified but the backup subnet is in a different VPC, it will be ignored. For CustomClientSecGrpIds , which in Terraform is a list of strings, custom security groups not in the VPC will be ignored, potentially leading to an empty list and creation of the generic security groups. If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. If specified, SsmParamPath must not be null . Other optional keys: ClientIpv4CidrBlock , ProtocolAndPort , DnsServerIpv4Addr , LogGroupPath , CloudWatchLogsKmsKey and LogsRetainDays . Because certificates are identified by tag, ServerCertificateArn and ClientRootCertificateChainArn are not allowed."
+  type = object({
+    TargetSubnetId           = string
+    BackupTargetSubnetId     = optional(string)
+    ClientIpv4CidrBlock      = optional(string)
+    ProtocolAndPort          = optional(string)
+    DestinationIpv4CidrBlock = optional(string)
+    DnsServerIpv4Addr        = optional(string)
+    CustomClientSecGrpIds    = optional(list(string))
+    LogGroupPath             = optional(string)
+    CloudWatchLogsKmsKey     = optional(string)
+    LogsRetainDays           = optional(string)
+    SsmParamPath             = optional(string, "/cloudformation")
+  })
+  description = "VPN CloudFormation stack parameter map. Keys are parameter names from ../cloudformation/10-minute-aws-client-vpn.yaml ; parameters are described there. All values are strings unless otherwise noted. Required key: TargetSubnetId . Because the main subnet determines the VPC, VpcId is not allowed. If BackupTargetSubnetId is specified but the backup subnet is in a different VPC, it will be ignored. For CustomClientSecGrpIds , which in Terraform is a list of strings, custom security groups not in the VPC will be ignored, potentially leading to an empty list and creation of the generic security groups. If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Other optional keys: ClientIpv4CidrBlock , ProtocolAndPort , DnsServerIpv4Addr , LogGroupPath , CloudWatchLogsKmsKey and LogsRetainDays . Because certificates are identified by tag, ServerCertificateArn and ClientRootCertificateChainArn are not allowed."
 
   validation {
     error_message = join("", [
@@ -52,7 +64,7 @@ variable "cvpn_params" {
 
       join(" , ", setsubtract(
         local.cvpn_params_required_key_set,
-        toset(keys(self))
+        toset(keys(var.cvpn_params))
       )),
 
       " ."
@@ -60,7 +72,7 @@ variable "cvpn_params" {
 
     condition = setsubtract(
       local.cvpn_params_required_key_set,
-      toset(keys(self))
+      toset(keys(var.cvpn_params))
     ) == local.empty_set
   }
 
@@ -70,7 +82,7 @@ variable "cvpn_params" {
       "One or more extra keys is present: ",
 
       join(" , ", setsubtract(
-        toset(keys(self)),
+        toset(keys(var.cvpn_params)),
         local.cvpn_params_allowed_key_set
       )),
 
@@ -78,18 +90,9 @@ variable "cvpn_params" {
     ])
 
     condition = setsubtract(
-      toset(keys(self)),
+      toset(keys(var.cvpn_params)),
       local.cvpn_params_allowed_key_set
     ) == local.empty_set
-  }
-
-  validation {
-    error_message = "If specified, SsmParamPath must not be null ."
-
-    condition = (
-      !contains(keys(self), "SsmParamPath")
-      || self["SsmParamPath"] != null
-    )
   }
 }
 
@@ -117,7 +120,7 @@ variable "cvpn_schedule_tags" {
     error_message = "CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed."
 
     condition = alltrue(
-      [for value in values(self) : length(value) >= 1]
+      [for value in values(var.cvpn_schedule_tags) : length(value) >= 1]
     )
   }
 
@@ -125,7 +128,7 @@ variable "cvpn_schedule_tags" {
     error_message = "Only the ${local.cvpn_schedule_tags_string} tags are allowed."
 
     condition = setsubtract(
-      toset(keys(self)),
+      toset(keys(var.cvpn_schedule_tags)),
       local.cvpn_schedule_tags_key_set
     ) == local.empty_set
   }
@@ -143,13 +146,13 @@ variable "cvpn_tags" {
     error_message = "CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed."
 
     condition = alltrue(
-      [for value in values(self) : length(value) >= 1]
+      [for value in values(var.cvpn_tags) : length(value) >= 1]
     )
   }
 
   validation {
     condition = setintersection(
-      toset(keys(self)),
+      toset(keys(var.cvpn_tags)),
       local.cvpn_schedule_tags_key_set
     ) == local.empty_set
 

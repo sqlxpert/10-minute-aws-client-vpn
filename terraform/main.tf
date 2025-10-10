@@ -98,15 +98,13 @@ data "aws_kms_key" "cvpn_cloudwatch_logs" {
 
 locals {
   cvpn_params = merge(
-    { # The module caller can override these keys:
-
+    { # TENTATIVE...
       DestinationIpv4CidrBlock = data.aws_vpc.cvpn.cidr_block
-      SsmParamPath             = "/cloudformation"
     },
 
     var.cvpn_params,
 
-    { # The module caller cannot override these keys:
+    { # FINAL...
 
       Enable = tostring(false)
       # Do not associate the virtual private network (VPN) with the virtual
