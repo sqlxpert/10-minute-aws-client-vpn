@@ -3,41 +3,31 @@
 
 
 
-# Intended for use in the root module or as a child module. You may wish to
-# eliminate the variables and refine the data source arguments, or to
-# eliminate the data sources as well, and refer directly to a VPC, subnets and
-# other resources. I do not want to prescribe a child module whose interface
-# might not fit users' approaches to module composition! Instead, I offer an
-# example for you to modify.
-#
-# https://developer.hashicorp.com/terraform/language/modules/develop/structure
-#
-# https://docs.aws.amazon.com/prescriptive-guidance/latest/terraform-aws-provider-best-practices/structure.html#repo-structure
-#
-# https://developer.hashicorp.com/terraform/language/modules/develop/composition
-
-
-
 data "aws_subnet" "cvpn_target" {
-  id    = var.cvpn_params["TargetSubnetIds"][0]
-  state = "available"
+  region = local.region
+  id     = var.cvpn_params["TargetSubnetIds"][0]
+  state  = "available"
 }
 
 data "aws_vpc" "cvpn" {
-  id    = data.aws_subnet.cvpn_target.vpc_id
-  state = "available"
+  region = local.region
+  id     = data.aws_subnet.cvpn_target.vpc_id
+  state  = "available"
 }
 
 data "aws_subnet" "cvpn_vpc_backup_target" {
   count = length(var.cvpn_params["TargetSubnetIds"]) >= 2 ? 1 : 0
 
+  region = local.region
   vpc_id = data.aws_vpc.cvpn.id
   id     = var.cvpn_params["TargetSubnetIds"][1]
   state  = "available"
 
   lifecycle {
     postcondition {
-      condition     = (data.aws_subnet.cvpn_target.availability_zone != self.availability_zone)
+      condition = (
+        data.aws_subnet.cvpn_target.availability_zone != self.availability_zone
+      )
       error_message = "1st and optional 2nd (backup) subnets must cover different availability zones."
     }
   }
@@ -46,6 +36,7 @@ data "aws_subnet" "cvpn_vpc_backup_target" {
 data "aws_security_groups" "cvpn_custom_client" {
   count = length(try(var.cvpn_params["CustomClientSecGrpIds"], [])) == 0 ? 0 : 1
 
+  region = local.region
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.cvpn.id]
@@ -62,6 +53,7 @@ data "aws_security_groups" "cvpn_custom_client" {
 # VPN and presumably have permission to tag them.
 
 data "aws_acm_certificate" "cvpn_server" {
+  region = local.region
   tags = {
     CVpnServer = ""
   }
@@ -75,6 +67,7 @@ data "aws_acm_certificate" "cvpn_server" {
 data "aws_acm_certificate" "cvpn_client_root_chain" {
   count = contains(keys(acm_certificate.tags), "CVpnClientRootChain") ? 0 : 1
 
+  region = local.region
   tags = {
     CVpnClientRootChain = ""
   }
@@ -87,8 +80,7 @@ data "aws_acm_certificate" "cvpn_client_root_chain" {
 data "aws_kms_key" "cvpn_cloudwatch_logs" {
   count = try(var.cvpn_params["CloudWatchLogsKmsKey"], "") == "" ? 0 : 1
 
-  # Provider functions added in Terraform v1.8.0
-  # arn_build added in Terraform AWS provider v5.40.0
+  region = local.region
   key_id = provider::aws::arn_build(
     local.partition,
     "kms", # service
@@ -96,27 +88,30 @@ data "aws_kms_key" "cvpn_cloudwatch_logs" {
     split(":", var.cvpn_params["CloudWatchLogsKmsKey"])[0], # account
     split(":", var.cvpn_params["CloudWatchLogsKmsKey"])[1]  # resource (key/KEY_ID)
   )
+  # Provider functions added in Terraform v1.8.0
+  # arn_build added in Terraform AWS provider v5.40.0
 }
 
 
 
 locals {
   cvpn_params = merge(
-    {
-      SsmParamPath = "/cloudformation"
+    { # The module caller can override these keys:
+
+      DestinationIpv4CidrBlock = data.aws_vpc.cvpn.cidr_block
+      SsmParamPath             = "/cloudformation"
     },
+
     var.cvpn_params,
-    {
+
+    { # The module caller cannot override these keys:
+
       Enable = tostring(false)
       # Do not associate the virtual private network (VPN) with the virtual
       # private cloud (VPC) when Terraform creates the CloudFormation stack. AWS
       # charges while the association is present, even if no VPN user connects.
 
       VpcId = data.aws_vpc.cvpn.id
-      DestinationIpv4CidrBlock = try(
-        var.cvpn_params["DestinationIpv4CidrBlock"],
-        data.aws_vpc.cvpn.cidr_block
-      )
 
       TargetSubnetIds = null
       TargetSubnetId  = data.aws_subnet.cvpn_target.id
@@ -158,6 +153,8 @@ resource "aws_cloudformation_stack" "cvpn_prereq" {
   name          = "CVpnPrereq${var.cvpn_stack_name_suffix}"
   template_body = file("${path.module}/../cloudformation/10-minute-aws-client-vpn-prereq.yaml")
 
+  region = local.region
+
   capabilities = ["CAPABILITY_IAM"]
   policy_body  = file("${path.module}/../cloudformation/10-minute-aws-client-vpn-prereq-policy.json")
 
@@ -174,6 +171,8 @@ resource "aws_cloudformation_stack" "cvpn" {
   name          = "CVpn${var.cvpn_stack_name_suffix}"
   template_body = file("${path.module}/../cloudformation/10-minute-aws-client-vpn.yaml")
 
+  region = local.region
+
   lifecycle {
     ignore_changes = [
       parameters["Enable"]
@@ -185,7 +184,10 @@ resource "aws_cloudformation_stack" "cvpn" {
   iam_role_arn = data.aws_iam_role.cvpn_deploy.arn
   policy_body  = file("${path.module}/../cloudformation/10-minute-aws-client-vpn-policy.json")
 
-  tags = local.cvpn_tags
+  tags = merge(
+    local.cvpn_tags,
+    var.cvpn_schedule_tags,
+  )
 
   parameters = local.cvpn_params
 }
