@@ -176,24 +176,6 @@ resource "aws_cloudformation_stack" "cvpn" {
       parameters["Enable"],
       # To turn the VPN on and off, toggle this parameter in CloudFormation,
       # not in Terraform.
-
-      parameters["TargetSubnetId"],
-      # Registering a change in the main subnet could prompt an attempt to
-      # change the VPC.
-
-      parameters["ProtocolAndPort"],
-      tags,
-      # Registering a change in protocol or tags (!) would force replacement of
-      # the VPN endpoint.
-      # https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ec2-clientvpnendpoint.html#aws-resource-ec2-clientvpnendpoint-properties
-
-      parameters["LogGroupPath"],
-      parameters["SsmParamPath"],
-      # Registering a change in path would force renaming and replacement of
-      # the CloudWatch log group or of the Systems Manager (SSM) Parameter
-      # Store parameter.
-      # https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-logs-loggroup.html#aws-resource-logs-loggroup-properties
-      # https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ssm-parameter.html#aws-resource-ssm-parameter-properties
     ]
   }
 
