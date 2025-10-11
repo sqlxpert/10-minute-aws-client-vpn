@@ -154,43 +154,43 @@ authority (and Terraform state, if you are using Terraform).
         [parameter updates](#parameter-updates)
         that are not possible.
 
-      - **Terraform**
+    - **Terraform**
 
-        Check that you have at least:
+      Check that you have at least:
 
-        - [Terraform v1.10.0 (2024-11-27)](https://github.com/hashicorp/terraform/releases/tag/v1.10.0)
-        - [Terraform AWS provider v6.0.0 (2025-06-18)](https://github.com/hashicorp/terraform-provider-aws/releases/tag/v6.0.0)
+      - [Terraform v1.10.0 (2024-11-27)](https://github.com/hashicorp/terraform/releases/tag/v1.10.0)
+      - [Terraform AWS provider v6.0.0 (2025-06-18)](https://github.com/hashicorp/terraform-provider-aws/releases/tag/v6.0.0)
 
-        Add the following child module to your existing root module:
+      Add the following child module to your existing root module:
 
-        ```terraform
-        module "cvpn" {
-          source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=v4.1.0"
-            # Reference a specific version from github.com/sqlxpert/10-minute-aws-client-vpn/releases
+      ```terraform
+      module "cvpn" {
+        source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=v4.1.0"
+          # Reference a specific version from github.com/sqlxpert/10-minute-aws-client-vpn/releases
 
-          cvpn_params = {
-            TargetSubnetId = "subnet-10123456789abcdef"
-          }
+        cvpn_params = {
+          TargetSubnetId = "subnet-10123456789abcdef"
         }
-        ```
+      }
+      ```
 
-        Edit the subnet&nbsp;ID to match the ID of a subnet in the VPN's
-        primary (or sole) Availability Zone.
+      Edit the subnet&nbsp;ID to match the ID of a subnet in the VPN's
+      primary (or sole) Availability Zone.
 
-        Have Terraform download the module's source code. Review the plan
-        before typing `yes` to allow Terraform to proceed with applying the
-        changes.
+      Have Terraform download the module's source code. Review the plan
+      before typing `yes` to allow Terraform to proceed with applying the
+      changes.
 
-        ```shell
-        terraform init
-        terraform apply
-        ```
+      ```shell
+      terraform init
+      terraform apply
+      ```
 
-        **Turn on the VPN** &#9888; by changing the `Enable` parameter of the
-        `CVpn` stack to `true` in CloudFormation. The Terraform module leaves
-        the VPN off at first, and it deliberately ignores changes to
-        `cvpn_params["Enable"]`, so that CloudFormation can manage that
-        parameter.
+      **Turn on the VPN** &#9888; by changing the `Enable` parameter of the
+      `CVpn` stack to `true` in CloudFormation. The Terraform module leaves
+      the VPN off at first, and it deliberately ignores changes to
+      `cvpn_params["Enable"]`, so that CloudFormation can manage that
+      parameter.
 
  4. Follow
     [Step 7 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config).
@@ -289,17 +289,20 @@ authority (and Terraform state, if you are using Terraform).
 
 ## Parameter Updates
 
-You can toggle the `Enable` parameter.
+You can toggle the `Enable` parameter (always in CloudFormation, never from
+Terraform).
 
 You can add or remove a backup subnet (in a second Availability Zone), but you
-must do it while the VPN is enabled or the change won't register.
+must do it while the VPN is enabled, or the change won't register.
 
 You can also switch between generic and custom VPN client security groups.
 
 Do not try to change the VPC, the IP address ranges, or the path parameters
-after you have created the `CVpn` stack. Instead, create a `CVpn2` stack,
-delete your original `CVpn` stack, then update the _remote_ line of your client
-configuration file and re-import. The optional
+after the `CVpn` stack has been created. Instead, create a `CVpn2` stack (in
+Terraform, create a new module instance with
+`cvpn_stack_name_suffix = "2"`&nbsp;), then update the _remote_ line of
+your client configuration file and re-import to your VPN client utility. The
+optional
 [cloudformation/10-minute-aws-client-vpn-policy.json](/cloudformation/10-minute-aws-client-vpn-policy.json)
 stack policy protects against most of these changes.
 
