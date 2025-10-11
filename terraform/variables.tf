@@ -49,9 +49,14 @@ variable "cvpn_schedule_tags" {
     error_message = "CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed."
 
     condition = alltrue([
-      for value in values(var.cvpn_schedule_tags) :
-      (value == null) || (length(value) >= 1)
+      for value in values(var.cvpn_tags) : try(length(value) >= 1, true)
     ])
+    # Use try to guard against length(null) . Allowing null is necessary here
+    # as a means of preventing the setting of a given tag. The more explicit:
+    #   (value == null) || (length(value) >= 1)
+    # does not work with versions of Terraform released before 2024-12-16.
+    # Error: Invalid value for "value" parameter: argument must not be null.
+    # https://github.com/hashicorp/hcl/pull/713
   }
 }
 
@@ -78,12 +83,7 @@ variable "cvpn_tags" {
     condition = alltrue([
       for value in values(var.cvpn_tags) : try(length(value) >= 1, true)
     ])
-    # Use try to guard against length(null) . Allowing null is necessary here
-    # as a means of preventing the setting of a given tag. The more explicit:
-    #   (value == null) || (length(value) >= 1)
-    # does not work with versions of Terraform released before 2024-12-16.
-    # Error: Invalid value for "value" parameter: argument must not be null.
-    # https://github.com/hashicorp/hcl/pull/713
+    # See length(null) comment, above
   }
 
   validation {
