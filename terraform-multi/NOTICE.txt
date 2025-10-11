@@ -1,6 +1,0 @@
-This module, moved from the original terraform/ module, will be abandoned
-before the next major release. The new terraform/ module is region-aware but
-single-region.
-
-This multi-region module source code will be preserved in the commit history in
-case it is useful in the future.
