@@ -49,7 +49,8 @@ variable "cvpn_schedule_tags" {
     error_message = "CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed."
 
     condition = alltrue([
-      for value in values(var.cvpn_tags) : try(length(value) >= 1, true)
+      for value in values(var.cvpn_schedule_tags) :
+      try(length(value) >= 1, true)
     ])
     # Use try to guard against length(null) . Allowing null is necessary here
     # as a means of preventing the setting of a given tag. The more explicit:
