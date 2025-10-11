@@ -301,10 +301,8 @@ Do not try to change the VPC, the IP address ranges, or the path parameters
 after the `CVpn` stack has been created. Instead, create a `CVpn2` stack (in
 Terraform, create a new module instance with
 `cvpn_stack_name_suffix = "2"`&nbsp;), then update the _remote_ line of
-your client configuration file and re-import to your VPN client utility. The
-optional
-[cloudformation/10-minute-aws-client-vpn-policy.json](/cloudformation/10-minute-aws-client-vpn-policy.json)
-stack policy protects against most of these changes.
+your client configuration file and re-import the configuration file to your VPN
+client utility.
 
 ## Terraform Details
 
