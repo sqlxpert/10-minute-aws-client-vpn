@@ -2,9 +2,8 @@
 
 ## Goals
 
-This CloudFormation template
-(+&nbsp;[Terraform option](#terraform-option))
-helps you set up an
+This CloudFormation template (+&nbsp;optional Terraform module) helps you set
+up an
 [AWS-managed VPN](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/what-is.html)
 in about 10&nbsp;minutes and operate it for as little as $1.41 per work day!
 
@@ -63,16 +62,16 @@ exposure to the public Internet.
 
 ## Quick Installation
 
-> Before you begin, take a deep breath! Setup is shorter than it looks. It's a good idea to read each step completely before you start it. Unfortunately, you will have to switch back and forth between this ReadMe file and AWS's documentation.
->
-> You do not need to be an expert to get started. After your AWS Client VPN is up and running, you can learn more at your own pace, by reading the descriptions of the optional parameters and examining the templates.
->
+> Before you begin, take a deep breath! Certificate setup is shorter than it
+looks. It's a good idea to read each step completely before you start it.
+You will have to switch back and forth between this ReadMe file and AWS's
+documentation.
+
 > [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html)
 might be useful for setup and maintenance, but be aware of
 [limitations on persistent storage](https://docs.aws.amazon.com/cloudshell/latest/userguide/limits.html#persistent-storage-limitations)
-if you use your free CloudShell home directory to store your certificate authority
-(and Terraform state, if you use the
-[Terraform option](#terraform-option)).
+if you use your free CloudShell home directory to store your certificate
+authority (and Terraform state, if you are using Terraform).
 
  1. Follow AWS's
     [mutual authentication steps](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-auth-mutual-enable.html).
@@ -91,21 +90,33 @@ if you use your free CloudShell home directory to store your certificate authori
     - After uploading the first (server) certificate, copy the ARN returned by
       AWS Certificate Manager.
 
-    - There is no need to upload the second (client) certificate.
+    - Uploading the second (client) certificate is completely optional.
+
+    - **If you are using Terraform, you must tag the VPN certificate(s).**
+      &#9888; If you did not upload the second (client) certificate, apply both
+      tags to the _server_ certificate.
+
+      ```shell
+      aws acm add-tags-to-certificate --tags 'Key=CVpnServer,Value=' --certificate-arn 'SERVER_CERT_ARN'
+      aws acm add-tags-to-certificate --tags 'Key=CVpnClientRootChain,Value=' --certificate-arn 'CLIENT_CERT_ARN'
+      ```
 
  2. _Optional:_ You can use a
     [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
     to delegate only the privileges needed to deploy a Client VPN stack.
 
-    This step is required only if you plan to use
-    [Lights Off](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule)
+    Always skip to Step&nbsp;3 if you are using Terraform.
+
+    If you are using CloudFormation, skip to Step&nbsp;3 if you do _not_ plan
+    to use
+    [Lights Off](https://github.com/sqlxpert/lights-off-aws)
     to turn the VPN on and off on a schedule.
 
     - Create a stack from a locally-saved copy of
-      [10-minute-aws-client-vpn-prereq.yaml](/10-minute-aws-client-vpn-prereq.yaml?raw=true)
+      [cloudformation/10-minute-aws-client-vpn-prereq.yaml](/cloudformation/10-minute-aws-client-vpn-prereq.yaml?raw=true)
       [right-click to save as...].
 
-    - Name the stack `CVpnPrereq` .
+    - Name the stack `CVpnPrereq`&nbsp;.
 
     - Under "Additional settings" &rarr; "Stack policy - optional", you can
       "Upload a file" and select a locally-saved copy of
@@ -114,28 +125,72 @@ if you use your free CloudShell home directory to store your certificate authori
       replacement or deletion of the deployment role during stack updates,
       but it cannot prevent deletion of the entire `CVpnPrereq` stack.
 
- 3. Create a CloudFormation stack from a locally-saved copy of
-    [10-minute-aws-client-vpn.yaml](/10-minute-aws-client-vpn.yaml?raw=true)
-    [right-click to save as...].
+ 3. Install Lights Off using CloudFormation or Terraform.
 
-    - Name the stack `CVpn` .
+    - **CloudFormation** _Easy!_
 
-    - The parameters are thoroughly documented. Set only the "Essential" ones.
+      Create a stack from a locally-saved copy of
+      [cloudformation/10-minute-aws-client-vpn.yaml](/cloudformation/10-minute-aws-client-vpn.yaml?raw=true)
+      [right-click to save as...].
 
-    - Under "Permissions - optional" &rarr; "IAM role - optional", select
-      `CVpnPrereq-DeploymentRole` _if_ you created the deployment role in the
-      previous step. (If your own privileges are limited, you might
-      need explicit permission to pass the role to CloudFormation. See the
-      `CVpnPrereq-SampleDeploymentRolePassRolePol` IAM policy for an example.)
+      - Name the stack `CVpn`&nbsp;.
 
-    - Under "Additional settings" &rarr; "Stack policy - optional", you can
-      "Upload a file" and select a locally-saved copy of
-      [10-minute-aws-client-vpn-policy.json](/10-minute-aws-client-vpn-policy.json?raw=true)
-      [right-click to save as...]. The stack policy prevents replacement or
-      deletion of certain resources during stack updates, producing an error
-      if you attempt
-      [parameter updates](#parameter-updates)
-      that are not possible.
+      - The parameters are thoroughly documented. Set only the "Essential"
+        ones.
+
+      - Under "Permissions - optional" &rarr; "IAM role - optional", select
+        `CVpnPrereq-DeploymentRole` _if_ you created the deployment role in
+        Step&nbsp;2. (If your own privileges are limited, you might need
+        explicit permission to pass the role to CloudFormation. See the
+        `CVpnPrereq-SampleDeploymentRolePassRolePol` IAM policy for an
+        example.)
+
+      - Under "Additional settings" &rarr; "Stack policy - optional", you can
+        "Upload a file" and select a locally-saved copy of
+        [cloudformation/10-minute-aws-client-vpn-policy.json](/cloudformation/10-minute-aws-client-vpn-policy.json?raw=true)
+        [right-click to save as...]. The stack policy prevents replacement or
+        deletion of certain resources during stack updates, producing an error
+        if you attempt
+        [parameter updates](#parameter-updates)
+        that are not possible.
+
+    - **Terraform**
+
+      Check that you have at least:
+
+      - [Terraform v1.10.0 (2024-11-27)](https://github.com/hashicorp/terraform/releases/tag/v1.10.0)
+      - [Terraform AWS provider v6.0.0 (2025-06-18)](https://github.com/hashicorp/terraform-provider-aws/releases/tag/v6.0.0)
+
+      Add the following child module to your existing root module:
+
+      ```terraform
+      module "cvpn" {
+        source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=v4.0.0"
+          # Reference a specific version from github.com/sqlxpert/10-minute-aws-client-vpn/releases
+
+        cvpn_params = {
+          TargetSubnetId = "subnet-10123456789abcdef"
+        }
+      }
+      ```
+
+      Edit the subnet&nbsp;ID to match the ID of a subnet in the VPN's
+      primary (or sole) Availability Zone.
+
+      Have Terraform download the module's source code. Review the plan
+      before typing `yes` to allow Terraform to proceed with applying the
+      changes.
+
+      ```shell
+      terraform init
+      terraform apply
+      ```
+
+      **Turn on the VPN** &#9888; by changing the `Enable` parameter of the
+      `CVpn` stack to `true` in CloudFormation. The Terraform module leaves
+      the VPN off at first, and it deliberately ignores changes to
+      `cvpn_params["Enable"]`, so that CloudFormation can manage that
+      parameter.
 
  4. Follow
     [Step 7 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config).
@@ -157,8 +212,8 @@ if you use your free CloudShell home directory to store your certificate authori
       `~/custom_folder/client1.domain.tld.key` key file.
 
     - Rename `~/custom_folder` and note that you must also continue to protect
-      `easy-rsa/easyrsa3/pki` and `downloaded-client-config.ovpn` . All three
-      contain copies of your key.
+      `easy-rsa/easyrsa3/pki` and `downloaded-client-config.ovpn`&nbsp;. All
+      three contain copies of your key.
 
  5. Download either the latest
     [OpenVPN](https://openvpn.net) client (Resources &rarr; Connect Client
@@ -192,8 +247,10 @@ if you use your free CloudShell home directory to store your certificate authori
 
 ## Automatic Scheduling
 
- 1. Be sure that you completed the optional parts of the
-    [Quick Installation](#quick-installation) procedure.
+ 1. If you used CloudFormation to install the VPN stack, be sure that you
+    completed Step&nbsp;2 of the
+    [Quick Installation](#quick-installation)
+    procedure and set "IAM role - optional" in Step&nbsp;3.
 
  2. [Install Lights Off](https://github.com/sqlxpert/lights-off-aws#quick-start).
 
@@ -203,6 +260,15 @@ if you use your free CloudShell home directory to store your certificate authori
     - `sched-set-Enable-true` : `u=1 u=2 u=3 u=4 u=5 H:M=11:00`
     - `sched-set-Enable-false` : `u=2 u=3 u=4 u=5 u=6 H:M=01:00`
 
+    In Terraform, set the following variable inside your `module` block:
+
+    ```terraform
+        cvpn_schedule_tags = {
+          sched-set-Enable-true  = "u=1 u=2 u=3 u=4 u=5 H:M=11:00"
+          sched-set-Enable-false = "u=2 u=3 u=4 u=5 u=6 H:M=01:00"
+        }
+    ```
+
     Adjust the weekdays and the times based on your work schedule. This example
     is suitable for the mainland portions of the United States and Canada.
 
@@ -210,8 +276,7 @@ if you use your free CloudShell home directory to store your certificate authori
       [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Week_dates).
     - Times are in Universal Coordinated Time (UTC). This converter may be
       helpful:
-      [www.timeanddate.com](https://www.timeanddate.com/worldclock/converter.html?iso=20250320T110000&p1=224&p2=250&p3=1440&p4=37&p5=44)
-      .
+      [www.timeanddate.com](https://www.timeanddate.com/worldclock/converter.html?iso=20250320T110000&p1=224&p2=250&p3=1440&p4=37&p5=44)&nbsp;.
     - UTC has no provision for Daylight Saving Time/Summer Time. Leave a
       buffer at the end of your work day to avoid having to change schedules.
 
@@ -224,111 +289,44 @@ if you use your free CloudShell home directory to store your certificate authori
 
 ## Parameter Updates
 
-You can toggle the `Enable` parameter.
+You can toggle the `Enable` parameter (always in CloudFormation, never from
+Terraform).
 
-You can add or remove a backup subnet (second Availability Zone) even while
-the VPN is enabled. You can also switch between generic and custom VPN client
-security groups.
+You can add or remove a backup subnet (in a second Availability Zone), but you
+must do it while the VPN is enabled, or the change won't register.
+
+You can also switch between generic and custom VPN client security groups.
 
 Do not try to change the VPC, the IP address ranges, or the path parameters
-after you have created the `CVpn` stack. Instead, create a `CVpn2` stack,
-delete your original `CVpn` stack, then update the _remote_ line of your client
-configuration file and re-import. The optional
-[10-minute-aws-client-vpn-policy.json](/10-minute-aws-client-vpn-policy.json)
-stack policy protects against most of these changes.
+after the `CVpn` stack has been created. Instead, create a `CVpn2` stack (in
+Terraform, create a new module instance with
+`cvpn_stack_name_suffix = "2"`&nbsp;), then update the _remote_ line of
+your client configuration file and re-import the configuration file to your VPN
+client utility.
 
-## Terraform Option
+## Terraform Details
 
-### Terraform Child Module
-
-To create the VPN in a child module, add the following to your root Terraform
-module:
-
-```terraform
-module "cvpn" {
-  source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git?ref=vTAG"
-
-  accounts_to_regions_to_cvpn_params = {
-    "CURRENT_AWS_ACCOUNT" = {
-      "CURRENT_AWS_REGION" = {
-        "TargetSubnetIds" = [
-          "subnet-10123456789abcdef",
-        ]
-      }
-    }
-  }
-}
-```
-
-Replace _TAG_ with a specific version from
-[Releases](https://github.com/sqlxpert/10-minute-aws-client-vpn/releases).
-Always reference a specific version &#9888;.
-
-Edit the subnet&nbsp;ID to match the ID of a subnet in the VPN's primary (or
-sole) Availability Zone. The module (not you!) replaces the
-`CURRENT_AWS_ACCOUNT` and `CURRENT_AWS_REGION` literals with the AWS account
-number and region code.
-
-Before proceeding, have Terraform download the module's source code:
-
-```shell
-terraform init
-```
-
-### Terraform Root Module
-
-<details>
-  <summary>Required files...</summary>
-
-<br/>
-
-To create the VPN in your root Terraform module instead of in a child module,
-copy the `*.tf *.yaml *.json` files to the directory containing your root
-Terraform module.
-
-In a `terraform.tfvars` file in the same directory, set:
-
-```terraform
-accounts_to_regions_to_cvpn_params = {
-  "CURRENT_AWS_ACCOUNT" = {
-    "CURRENT_AWS_REGION" = {
-      "TargetSubnetIds" = [
-        "subnet-10123456789abcdef",
-      ]
-    }
-  }
-}
-```
-
-Edit the subnet&nbsp;ID.
-
-</details>
-
-### Installing with Terraform
+### Terraform Permissions
 
 <details>
   <summary>If you run Terraform with least-privilege permissions...</summary>
 
 <br/>
 
-Most people do not need to read this section, because most Terraform users
-grant full AWS administrative permissions to Terraform.
+If you do not give Terraform full AWS administrative permissions, you must give
+it permission to:
 
-If, given the serious security risks associated with the typical approach, you
-instead follow the principle of least privilege for Terraform, you must give
-Terraform permission to:
-
-- List, describe, create, update and delete CloudFormation stacks
+- List, describe, get tags for, create, tag, update, untag and delete
+  IAM roles, update the "assume role" (role trust or "resource-based")
+  policy, and put and delete in-line policies
+- List, describe, create, tag, update, untag, and delete CloudFormation
+  stacks
 - Set and get CloudFormation stack policies
-- List, describe, get tags for, create, tag, update and delete IAM roles and
-  their in-line policies
 - Pass `CVpnPrereq-DeploymentRole-*` to CloudFormation
-- List, describe, and get tags for, all of the `data` sources in
-  [10-minute-aws-client-vpn.tf](/10-minute-aws-client-vpn.tf)&nbsp;.
-  For a list, run:
+- List, describe, and get tags for, all `data` sources. For a list, run:
 
   ```shell
-  grep 'data "' 10-minute-aws-client-vpn.tf
+  grep 'data "' terraform/*.tf
   ```
 
 Open the
@@ -336,14 +334,24 @@ Open the
 go through the list of services on the left, and consult the "Actions" table
 for each of:
 
-- `CloudFormation`
 - `AWS Identity and Access Management (IAM)`
-- `Amazon EC2`
+- `CloudFormation`
 - `AWS Security Token Service`
+- `Amazon EC2`
 - `AWS Certificate Manager`
 - `AWS Systems Manager`
 - `AWS Key Management Service` (if you encrypt the CloudWatch log group with a
   KMS key)
+
+In most cases, you can scope Terraform's permissions to one workload by
+regulating resource naming and tagging, and then by using:
+
+- [ARN patterns in `Resource` lists](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_resource.html#reference_policies_elements_resource_wildcards)
+- [ARN patterns in `Condition` entries](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_condition_operators.html#Conditions_ARN)
+- [Request tag and then resource tag `Condition` entries](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html)
+
+Check Service and Resource Control Policies (SCPs and RCPs), as well as
+resource policies (such as KMS key policies).
 
 The deployment role defined in the `CVpnPrereq` stack gives CloudFormation the
 permissions it needs to create the `CVpn` stack. Terraform itself does not need
@@ -351,49 +359,9 @@ the deployment role's permissions.
 
 </details>
 
-Follow the
-[Quick Installation](#quick-installation)
-instructions, except that:
-
-- Step&nbsp;2 is handled automatically.
-- In place of Step&nbsp;3, you will tag the VPN certificate(s) you've uploaded,
-  before using _Terraform_ to install the `CVpnPrereq` and `CVpn`
-  CloudFormation stacks.
-
-  If you did not upload a client certificate, apply both tags to the _server_
-  certificate.
-
-  ```shell
-  aws acm add-tags-to-certificate --tags 'Key=CVpnServer,Value=' --certificate-arn 'SERVER_CERT_ARN'
-  aws acm add-tags-to-certificate --tags 'Key=CVpnClientRootChain,Value=' --certificate-arn 'CLIENT_CERT_ARN'
-
-  terraform apply
-  ```
-
-Remember to **turn on the VPN** &#9888; by changing the `Enable` parameter of
-the `CVpn` stack to `true`, in CloudFormation. The Terraform option leaves the
-VPN off at first.
-
-The Terraform option is compatible with
-[Automatic Scheduling](#automatic-scheduling).
-`terraform plan` will not report unapplied changes when the `Enable` parameter
-value is changed in CloudFormation. To have Terraform set the schedule tags,
-add
-
-```terraform
-      "schedule_tags" = {
-        "sched-set-Enable-true"  = "u=1 u=2 u=3 u=4 u=5 H:M=11:00"
-        "sched-set-Enable-false" = "u=2 u=3 u=4 u=5 u=6 H:M=01:00"
-      }
-```
-
-to the inner `accounts_to_regions_to_cvpn_params` map. Edit the tag values.
-
-### Referencing Outputs in Terraform
+### Terraform Module Outputs
 
 For the VPN endpoint ID, reference the `module.cvpn.cvpn_endpoint_id` output.
-If you chose to create the VPN in your root Terraform module rather than in a
-child module, `data.aws_ec2_client_vpn_endpoint.cvpn` is provided for you.
 
 To accept traffic from VPN clients, reference the
 `module.cvpn.cvpn_client_sec_grp_id` output in:
@@ -401,15 +369,11 @@ To accept traffic from VPN clients, reference the
 - `aws_vpc_security_group.ingress.security_groups` _or_
 - `aws_vpc_security_group_ingress_rule.referenced_security_group_id`
 
-when you define security groups for your servers or listeners.
+when you define security groups for your servers or listeners. The security
+group output is not available &#9888; if you set
+`cvpn_params["CustomClientSecGrpIds"]`&nbsp;.
 
-If you chose to create the VPN in your root module,
-`data.aws_security_group.cvpn_client[0]` is provided.
-
-The security group output and data source are not available &#9888; if you
-supplied `CustomClientSecGrpIds`.
-
-### Customizing the Terraform Option
+### Terraform Customizations
 
 <details>
   <summary>Customization possibilities...</summary>
@@ -421,11 +385,8 @@ Up-to-date AWS users reference centrally-defined
 The Terraform option relies on data sources, which are appropriate for this
 configuration.
 
-If your subnets happen to be defined in the same Terraform workspace as the
-VPN, you may wish to substitute direct resource references.
-
-You may also wish to change the interface
-(`accounts_to_regions_to_cvpn_params`) to suit your particular approach to
+You may wish to change the interface (`cvpn_params`) to suit your particular
+approach to
 [Terraform module composition](https://developer.hashicorp.com/terraform/language/modules/develop/composition).
 
 </details>

@@ -33,67 +33,7 @@
 
 
 
-terraform {
-  required_version = "~> 1.13.0"
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 6.14.0"
-    }
-  }
-}
-
-
-
-# Reference resources not specific to the VPN by ID, because you might not have
-# permission to tag shared, multi-purpose resources...
-
-
-
-variable "accounts_to_regions_to_cvpn_params" {
-  type        = map(any)
-  description = "Nested map. Outer keys: account number strings, or CURRENT_AWS_ACCOUNT for any one. Intermediate keys: region code strings such as us-west-2 , or CURRENT_AWS_REGION for any one. Required inner key: TargetSubnetIds , a list with 1 to 2 elements. The 1st subnet determines the VPC, and any other inputs must be in that VPC. Optional inner keys: DestinationIpv4CidrBlock , DnsServerIpv4Addr , ClientIpv4CidrBlock , CustomClientSecGrpIds (groups not in the same VPC as the 1st subnet will be ignored, potentially leading to an empty list and creation of the generic security groups), and schedule_tags . If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Keys mentioned above correspond to CloudFormation stack parameters. If automatic scheduling is configured, set schedule expressions by adding schedule_tags , a map with keys sched-set-Enable-true and sched-set-Enable-false ."
-
-  default = {
-    "CURRENT_AWS_ACCOUNT" = {
-      "CURRENT_AWS_REGION" = {
-        "TargetSubnetIds" = [
-          # 1st required, 2nd optional
-          "subnet-10123456789abcdef",
-        ],
-
-        # Optional:
-        "DestinationIpv4CidrBlock" = ""
-        "DnsServerIpv4Addr"        = ""
-        "ClientIpv4CidrBlock"      = ""
-        "CustomClientSecGrpIds" = [
-          # "sg-10123456789abcdef",
-        ]
-        "schedule_tags" = {
-          "sched-set-Enable-true"  = ""
-          "sched-set-Enable-false" = ""
-        }
-      }
-    }
-  }
-}
-variable "cvpn_cloudwatch_logs_kms_key" {
-  type        = string
-  description = "If not set, default non-KMS CloudWatch Logs encryption applies. See the CloudWatchLogsKmsKey CloudFormation stack parameter."
-
-  default = null
-}
-
-
-
-data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
 locals {
-  caller_arn_parts = provider::aws::arn_parse(data.aws_caller_identity.current.arn)
-  account_id       = local.caller_arn_parts["account_id"]
-  region           = data.aws_region.current.region
-
   accounts_to_regions_to_cvpn_params = {
     for account_id, regions_to_cvpn_params in var.accounts_to_regions_to_cvpn_params :
     replace(account_id, "/^CURRENT_AWS_ACCOUNT$/", local.account_id) => regions_to_cvpn_params
@@ -106,8 +46,6 @@ locals {
   cvpn_regions_set = toset(keys(local.regions_to_cvpn_params))
 
   cvpn_params = local.regions_to_cvpn_params[local.region]
-
-  cvpn_ssm_param_path = "/cloudformation"
 }
 
 
@@ -222,53 +160,8 @@ data "aws_kms_key" "cvpn_cloudwatch_logs" {
 
 
 
-resource "aws_cloudformation_stack" "cvpn_prereq" {
-  name          = "CVpnPrereq"
-  template_body = file("${path.module}/10-minute-aws-client-vpn-prereq.yaml")
-
-  capabilities = ["CAPABILITY_IAM"]
-
-  policy_body = file(
-    "${path.module}/10-minute-aws-client-vpn-prereq-policy.json"
-  )
-}
-
-
-
-data "aws_iam_role" "cvpn_deploy" {
-  name = aws_cloudformation_stack.cvpn_prereq.outputs["DeploymentRoleName"]
-}
-
-
-
-resource "aws_cloudformation_stack" "cvpn" {
-  name          = "CVpn"
-  template_body = file("${path.module}/10-minute-aws-client-vpn.yaml")
-
-  lifecycle {
-    ignore_changes = [
-      parameters["Enable"]
-      # To turn the VPN on and off, toggle this parameter in CloudFormation,
-      # not in Terraform.
-    ]
-  }
-
-  policy_body = file("${path.module}/10-minute-aws-client-vpn-policy.json")
-
-  tags = {
-    sched-set-Enable-true = try(
-      local.cvpn_params.schedule_tags["sched-set-Enable-true"],
-      null
-    )
-    sched-set-Enable-false = try(
-      local.cvpn_params.schedule_tags["sched-set-Enable-false"],
-      null
-    )
-  }
-
-  iam_role_arn = data.aws_iam_role.cvpn_deploy.arn
-
-  parameters = {
+locals {
+  cvpn_params_final = {
     Enable = tostring(false)
     # Do not associate the virtual private network (VPN) with the virtual
     # private cloud (VPC) when Terraform creates the CloudFormation stack. AWS
@@ -324,47 +217,48 @@ resource "aws_cloudformation_stack" "cvpn" {
 
 
 
-# The CloudFormation template is self-contained. Resources that you might need
-# to reference can be resolved from inputs that you provided; no stack outputs
-# are needed.
+resource "aws_cloudformation_stack" "cvpn_prereq" {
+  name          = "CVpnPrereq${var.cvpn_stack_name_suffix}"
+  template_body = file("${path.module}/../cloudformation/10-minute-aws-client-vpn-prereq.yaml")
 
-
-
-# If you did not supply your own security group(s) for VPN clients, an AWS
-# Systems Manager (SSM) Parameter Store parameter with a known name identifies
-# the generic VPN client security group created for you. Unnecessary dependence
-# on module outputs leaves Terraform configurations brittle; pre-defining
-# security group(s) and passing them in lets you refer to them at any stage,
-# dependency-free.
-data "aws_ssm_parameter" "cvpn_client_sec_grp_id" {
-  count = try(aws_cloudformation_stack.cvpn.parameters["CustomClientSecGrpIds"], "") == "" ? 1 : 0
-  # CustomClientSecGrpIds is a string in HCL, not a list; see above!
-
-  name = join("/", [
-    local.cvpn_ssm_param_path,
-    aws_cloudformation_stack.cvpn.name,
-    "ClientSecGrpId"
-  ])
+  capabilities = ["CAPABILITY_IAM"]
+  policy_body  = file("${path.module}/../cloudformation/10-minute-aws-client-vpn-prereq-policy.json")
 }
-data "aws_security_group" "cvpn_client" {
-  count = try(aws_cloudformation_stack.cvpn.parameters["CustomClientSecGrpIds"], "") == "" ? 1 : 0
 
-  id = data.aws_ssm_parameter.cvpn_client_sec_grp_id[0].insecure_value
-}
-output "cvpn_client_sec_grp_id" {
-  value       = try(data.aws_security_group.cvpn_client[0].id, null)
-  description = "ID of the generic security group for Client VPN clients. Defined only if not custom security groups were supplied (see the CustomClientSecGrpIds CloudFormation stack parameter."
+data "aws_iam_role" "cvpn_deploy" {
+  name = aws_cloudformation_stack.cvpn_prereq.outputs["DeploymentRoleName"]
 }
 
 
 
-data "aws_ec2_client_vpn_endpoint" "cvpn" {
-  tags = {
-    Name = aws_cloudformation_stack.cvpn.name
-    # "aws:cloudformation:stack-name" tag not yet available, as of 2025-10
+resource "aws_cloudformation_stack" "cvpn" {
+  name          = "CVpn${var.cvpn_stack_name_suffix}"
+  template_body = file("${path.module}/../cloudformation/10-minute-aws-client-vpn.yaml")
+
+  lifecycle {
+    ignore_changes = [
+      parameters["Enable"]
+      # To turn the VPN on and off, toggle this parameter in CloudFormation,
+      # not in Terraform.
+    ]
   }
-}
-output "cvpn_endpoint_id" {
-  value       = data.aws_ec2_client_vpn_endpoint.cvpn.client_vpn_endpoint_id
-  description = "ID of the Client VPN endpoint. The self-service portal is not available, due to use of mutual TLS authentication. Download the VPN client configuration file using the AWS Console (VPC service) or the command-line interface: aws ec2 export-client-vpn-client-configuration --output text --client-vpn-endpoint-id 'cvpn-endpoint-00123456789abcdef'"
+
+  iam_role_arn = data.aws_iam_role.cvpn_deploy.arn
+  policy_body  = file("${path.module}/../cloudformation/10-minute-aws-client-vpn-policy.json")
+
+  tags = merge(
+    local.cvpn_tags,
+    {
+      sched-set-Enable-true = try(
+        local.cvpn_params.schedule_tags["sched-set-Enable-true"],
+        null
+      )
+      sched-set-Enable-false = try(
+        local.cvpn_params.schedule_tags["sched-set-Enable-false"],
+        null
+      )
+    }
+  )
+
+  parameters = local.cvpn_params_final
 }
