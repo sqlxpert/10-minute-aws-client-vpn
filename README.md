@@ -63,9 +63,8 @@ exposure to the public Internet.
 ## Quick Installation
 
 > Before you begin, take a deep breath! Certificate setup is shorter than it
-looks. It's a good idea to read each step completely before you start it.
-You will have to switch back and forth between this ReadMe file and AWS's
-documentation.
+looks. To avoid errors, read each step completely before doing it. You will
+have to switch between this ReadMe file and AWS's documentation.
 
 > [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html)
 might be useful for setup and maintenance, but be aware of
@@ -244,6 +243,12 @@ authority (and Terraform state, if you are using Terraform).
     If you do not use SSH, run a different command to test VPN connectivity.
 
 10. Remove `FromClientSampleSecGrp` (or equivalent) from you EC2 instance.
+
+> If you want to automate certificate creation, consider the
+[ssm-tls-self-signed-cert](https://registry.terraform.io/modules/cloudposse/ssm-tls-self-signed-cert/aws/latest)
+or
+[serverless-ca](https://registry.terraform.io/modules/serverless-ca/ca/aws/latest)
+Terraform modules.
 
 ## Automatic Scheduling
 
