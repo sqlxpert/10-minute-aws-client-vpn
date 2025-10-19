@@ -7,7 +7,6 @@ up an
 [AWS-managed VPN](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/what-is.html)
 in about 10&nbsp;minutes and operate it for as little as $1.41 per work day!
 
-[AWS Client VPN is expensive](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing).
 How this template minimizes costs:
 
  1. [Split-tunneling](https://en.wikipedia.org/wiki/Split_tunneling).
@@ -38,10 +37,9 @@ How this template minimizes costs:
 
     $365 per year divided by 260&nbsp;work days gives $1.41&nbsp;per work day.
 
-    > Prices in the `us-east-1` region were checked in October,&nbsp;2025 but
-    can change at any time.<br/>
-    NAT gateway, data transfer, and other charges may
-    also apply.
+    > [AWS Client VPN prices](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing)
+    in the `us-east-1` region were checked in October,&nbsp;2025 but can change
+    at any time. NAT gateway, data transfer, and other charges may also apply.
 
     </details>
 
