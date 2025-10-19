@@ -91,7 +91,7 @@ authority (and Terraform state, if you are using Terraform).
 
     - Uploading the second (client) certificate is completely optional.
 
- 2. &#9888; **If you are using Terraform, you must tag the VPN certificate(s).**
+ 2. &#9888; **Tag the VPN certificate(s) if you are using Terraform.**
     If you are not using a separate client certificate, apply both tags to
     the _server_ certificate.
 
