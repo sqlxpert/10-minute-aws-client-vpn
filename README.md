@@ -100,14 +100,16 @@ authority (and Terraform state, if you are using Terraform).
       aws acm add-tags-to-certificate --tags 'Key=CVpnClientRootChain,Value=' --certificate-arn 'CLIENT_CERT_ARN'
       ```
 
- 2. _Optional:_ You can use a
+ 2. <a name="quick-installation-step-2"></a>_Optional:_ You can use a
     [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
     to delegate only the privileges needed to deploy a Client VPN stack.
 
-    Always skip to Step&nbsp;3 if you are using Terraform.
+    [Skip to Step&nbsp;3](#quick-installation-step-3)
+    if you are using Terraform.
 
-    If you are using CloudFormation, skip to Step&nbsp;3 if you do _not_ plan
-    to use
+    If you are using CloudFormation,
+    [skip to Step&nbsp;3](#quick-installation-step-3)
+    if you do _not_ plan to use
     [Lights Off](https://github.com/sqlxpert/lights-off-aws)
     to turn the VPN on and off on a schedule.
 
@@ -124,7 +126,7 @@ authority (and Terraform state, if you are using Terraform).
       replacement or deletion of the deployment role during stack updates,
       but it cannot prevent deletion of the entire `CVpnPrereq` stack.
 
- 3. Install Lights Off using CloudFormation or Terraform.
+ 3. <a name="quick-installation-step-3"></a>Install Lights Off using CloudFormation or Terraform.
 
     - **CloudFormation**<br/>_Easy_ &check;
 
@@ -139,10 +141,10 @@ authority (and Terraform state, if you are using Terraform).
 
       - Under "Permissions - optional" &rarr; "IAM role - optional", select
         `CVpnPrereq-DeploymentRole` _if_ you created the deployment role in
-        Step&nbsp;2. (If your own privileges are limited, you might need
+        Step&nbsp;2. If your own privileges are limited, you might need
         explicit permission to pass the role to CloudFormation. See the
         `CVpnPrereq-SampleDeploymentRolePassRolePol` IAM policy for an
-        example.)
+        example.
 
       - Under "Additional settings" &rarr; "Stack policy - optional", you can
         "Upload a file" and select a locally-saved copy of
@@ -252,10 +254,13 @@ Terraform modules.
 
 ## Automatic Scheduling
 
- 1. If you used CloudFormation to install the VPN stack, be sure that you
-    completed Step&nbsp;2 of the
-    [Quick Installation](#quick-installation)
-    procedure and set "IAM role - optional" in Step&nbsp;3.
+ 1. If you used CloudFormation to create your `CVpn` stack, check the stack's
+    "Stack info" tab and make sure that "IAM role" is set. If "IAM role" is
+    blank, create the `CVpnPrereq` stack now (review
+    [Quick Installation Steps&nbsp;2](#quick-installation-step-2))
+    and then _update_ your `CVpn` stack, changing nothing until you reach the
+    "Configure stack options" page, on which you will set "IAM role - optional"
+    to `CVpnPrereq-DeploymentRole`&nbsp;.
 
  2. [Install Lights Off](https://github.com/sqlxpert/lights-off-aws#quick-start).
 
