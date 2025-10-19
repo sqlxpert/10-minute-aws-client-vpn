@@ -215,12 +215,6 @@ authority (and Terraform state, if you are using Terraform).
 
 10. Remove `FromClientSampleSecGrp` (or equivalent) from you EC2 instance.
 
-> If you want to automate certificate creation, consider the
-[ssm-tls-self-signed-cert](https://registry.terraform.io/modules/cloudposse/ssm-tls-self-signed-cert/aws/latest)
-or
-[serverless-ca](https://registry.terraform.io/modules/serverless-ca/ca/aws/latest)
-Terraform modules.
-
 ## Automatic Scheduling
 
  1. If you used Terraform above,
@@ -320,6 +314,13 @@ To accept traffic from VPN clients, reference the
 when you define security groups for your servers or listeners. The security
 group output is not available &#9888; if you set
 `cvpn_params["CustomClientSecGrpIds"]`&nbsp;.
+
+### Creating Certificates in Terraform
+
+To automate certificate creation, consider one of these third-party modules:
+
+- [ssm-tls-self-signed-cert](https://registry.terraform.io/modules/cloudposse/ssm-tls-self-signed-cert/aws/latest)
+- [serverless-ca](https://registry.terraform.io/modules/serverless-ca/ca/aws/latest)
 
 ### Terraform Permissions
 
