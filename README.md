@@ -308,7 +308,7 @@ client utility.
 ### Terraform Module Outputs
 
 |Output|Original Resource and Attribute|
-|:---|:---:|
+|:---|:---|
 ||**Matching Data Source and Argument**|
 |`module.cvpn.cvpn_endpoint_id`|[`aws_ec2_client_vpn_endpoint`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ec2_client_vpn_endpoint).[`id`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ec2_client_vpn_endpoint#id-1)|
 ||[`data.aws_ec2_client_vpn_endpoint`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ec2_client_vpn_endpoint).[`client_vpn_endpoint_id`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ec2_client_vpn_endpoint#client_vpn_endpoint_id-1)|
