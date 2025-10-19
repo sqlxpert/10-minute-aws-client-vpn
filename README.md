@@ -127,7 +127,7 @@ authority (and Terraform state, if you are using Terraform).
 
  3. Install Lights Off using CloudFormation or Terraform.
 
-    - **CloudFormation** _Easy!_
+    - **CloudFormation**<br/>_Easy_ &check;
 
       Create a stack from a locally-saved copy of
       [cloudformation/10-minute-aws-client-vpn.yaml](/cloudformation/10-minute-aws-client-vpn.yaml?raw=true)
@@ -165,7 +165,7 @@ authority (and Terraform state, if you are using Terraform).
 
       ```terraform
       module "cvpn" {
-        source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=v4.0.0"
+        source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=v4.0.1"
           # Reference a specific version from github.com/sqlxpert/10-minute-aws-client-vpn/releases
 
         cvpn_params = {
@@ -186,10 +186,10 @@ authority (and Terraform state, if you are using Terraform).
       terraform apply
       ```
 
-      **Turn on the VPN** &#9888; by changing the `Enable` parameter of the
+      &#9888; **Turn on the VPN** by changing the `Enable` parameter of the
       `CVpn` stack to `true` in CloudFormation. The Terraform module leaves
-      the VPN off at first, and it deliberately ignores changes to
-      `cvpn_params["Enable"]`, so that CloudFormation can manage that
+      the VPN off at first and then deliberately ignores changes to
+      `cvpn_params["Enable"]` so that CloudFormation can manage that
       parameter.
 
  4. Follow
@@ -306,6 +306,21 @@ client utility.
 
 ## Terraform Details
 
+### Terraform Module Outputs
+
+For the VPN endpoint ID, reference the `module.cvpn.cvpn_endpoint_id` output.
+
+To accept traffic from VPN clients, reference the
+`module.cvpn.cvpn_client_sec_grp_id` output in:
+
+- [`aws_vpc_security_group.ingress.security_groups`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group#security_groups-1)
+  _or_
+- [`aws_vpc_security_group_ingress_rule.referenced_security_group_id`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule#referenced_security_group_id-1)
+
+when you define security groups for your servers or listeners. The security
+group output is not available &#9888; if you set
+`cvpn_params["CustomClientSecGrpIds"]`&nbsp;.
+
 ### Terraform Permissions
 
 <details>
@@ -326,7 +341,7 @@ it permission to:
 - List, describe, and get tags for, all `data` sources. For a list, run:
 
   ```shell
-  grep 'data "' terraform/*.tf
+  grep 'data "' terraform*/*.tf | cut --delimiter=' ' --fields='1,2'
   ```
 
 Open the
@@ -356,38 +371,6 @@ resource policies (such as KMS key policies).
 The deployment role defined in the `CVpnPrereq` stack gives CloudFormation the
 permissions it needs to create the `CVpn` stack. Terraform itself does not need
 the deployment role's permissions.
-
-</details>
-
-### Terraform Module Outputs
-
-For the VPN endpoint ID, reference the `module.cvpn.cvpn_endpoint_id` output.
-
-To accept traffic from VPN clients, reference the
-`module.cvpn.cvpn_client_sec_grp_id` output in:
-
-- `aws_vpc_security_group.ingress.security_groups` _or_
-- `aws_vpc_security_group_ingress_rule.referenced_security_group_id`
-
-when you define security groups for your servers or listeners. The security
-group output is not available &#9888; if you set
-`cvpn_params["CustomClientSecGrpIds"]`&nbsp;.
-
-### Terraform Customizations
-
-<details>
-  <summary>Customization possibilities...</summary>
-
-<br/>
-
-Up-to-date AWS users reference centrally-defined
-[subnets shared through Resource Access Manager](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-sharing.html).
-The Terraform option relies on data sources, which are appropriate for this
-configuration.
-
-You may wish to change the interface (`cvpn_params`) to suit your particular
-approach to
-[Terraform module composition](https://developer.hashicorp.com/terraform/language/modules/develop/composition).
 
 </details>
 

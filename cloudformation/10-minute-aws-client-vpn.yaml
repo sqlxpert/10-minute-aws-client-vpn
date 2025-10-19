@@ -405,8 +405,10 @@ Resources:
 
   LogGroup:
     Type: AWS::Logs::LogGroup
-    DeletionPolicy: RetainExceptOnCreate
-    UpdateReplacePolicy: Retain
+
+    # Intent: Change Enable to false to keep old stack until logs expire.
+    DeletionPolicy: Delete
+
     Properties:
       LogGroupName: !Sub "${LogGroupPath}/${AWS::StackName}"
       RetentionInDays: !Ref LogsRetainDays
