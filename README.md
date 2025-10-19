@@ -217,6 +217,9 @@ authority (and Terraform state, if you are using Terraform).
 
 ## Automatic Scheduling
 
+<details>
+  <summary>To turn the VPN on and off on a schedule...</summary>
+
  1. If you used Terraform above,
     [skip to Automatic Scheduling Step&nbsp;2](#automatic-scheduling-step-2).
 
@@ -281,6 +284,8 @@ authority (and Terraform state, if you are using Terraform).
     days, and set up alerts with
     [AWS Budgets](https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html).
 
+</details>
+
 ## Parameter Updates
 
 You can toggle the `Enable` parameter (always in CloudFormation, never from
@@ -302,22 +307,25 @@ client utility.
 
 ### Terraform Module Outputs
 
-For the VPN endpoint ID, reference the `module.cvpn.cvpn_endpoint_id` output.
+|Output|Original Resource and Attribute|
+|:---|:---:|
+||**Matching Data Source and Argument**|
+|`module.cvpn.cvpn_endpoint_id`|[`aws_ec2_client_vpn_endpoint`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ec2_client_vpn_endpoint).[`id`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ec2_client_vpn_endpoint#id-1)|
+||[`data.aws_ec2_client_vpn_endpoint`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ec2_client_vpn_endpoint).[`client_vpn_endpoint_id`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ec2_client_vpn_endpoint#client_vpn_endpoint_id-1)|
+|`module.cvpn.cvpn_client_sec_grp_id`|[`aws_security_group`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group.html).[`id`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group.html#id-1)|
+||[`data.aws_security_group`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/security_group).[`id`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/security_group#id-1)|
 
-To accept traffic from VPN clients, reference the
-`module.cvpn.cvpn_client_sec_grp_id` output in:
+To accept traffic from VPN clients, reference `module.cvpn.cvpn_client_sec_grp_id` in:
 
-- [`aws_vpc_security_group.ingress.security_groups`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group#security_groups-1)
-  _or_
-- [`aws_vpc_security_group_ingress_rule.referenced_security_group_id`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule#referenced_security_group_id-1)
+- [`aws_vpc_security_group.`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group).[`ingress`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group#ingress).[`security_groups`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group#security_groups-1) or
+- [`aws_vpc_security_group_ingress_rule`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule).[`referenced_security_group_id`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule#referenced_security_group_id-1)
 
-when you define security groups for your servers or listeners. The security
-group output is not available &#9888; if you set
-`cvpn_params["CustomClientSecGrpIds"]`&nbsp;.
+of server or listener security groups. &#9888; The security group output is not
+available if `cvpn_params["CustomClientSecGrpIds"]` was set.
 
 ### Creating Certificates in Terraform
 
-To automate certificate creation, consider one of these third-party modules:
+To automate certificate creation, consider third-party modules such as:
 
 - [ssm-tls-self-signed-cert](https://registry.terraform.io/modules/cloudposse/ssm-tls-self-signed-cert/aws/latest)
 - [serverless-ca](https://registry.terraform.io/modules/serverless-ca/ca/aws/latest)
