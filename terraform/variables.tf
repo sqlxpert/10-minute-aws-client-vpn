@@ -1,9 +1,6 @@
 # AWS Client VPN
 # github.com/sqlxpert/10-minute-aws-client-vpn  GPLv3  Copyright Paul Marcelin
 
-# Reference resources not specific to the VPN by ID, because you might not have
-# permission to tag shared, multi-purpose resources...
-
 
 
 variable "cvpn_stack_name_suffix" {
@@ -14,6 +11,11 @@ variable "cvpn_stack_name_suffix" {
 }
 
 
+
+# You may wish to customize this interface, for example by omitting subnet IDs,
+# security group IDs, and the KMS key identifier in favor of looking up those
+# resources based on tags (if you have permission to tag resources that are not
+# dedicated to the VPN).
 
 variable "cvpn_params" {
   type = object({
