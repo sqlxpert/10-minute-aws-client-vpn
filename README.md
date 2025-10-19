@@ -72,7 +72,7 @@ might be useful for setup and maintenance, but be aware of
 if you use your free CloudShell home directory to store your certificate
 authority (and Terraform state, if you are using Terraform).
 
- 1. Follow AWS's
+ 1. Create the VPN certificate(s) by following AWS's
     [mutual authentication steps](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-auth-mutual-enable.html).
 
     - Copy the _individual_ Linux/macOS commands and execute them verbatim.
@@ -91,46 +91,22 @@ authority (and Terraform state, if you are using Terraform).
 
     - Uploading the second (client) certificate is completely optional.
 
-    - **If you are using Terraform, you must tag the VPN certificate(s).**
-      &#9888; If you did not upload the second (client) certificate, apply both
-      tags to the _server_ certificate.
+ 2. &#9888; **If you are using Terraform, you must tag the VPN certificate(s).**
+    If you are not using a separate client certificate, apply both tags to
+    the _server_ certificate.
 
-      ```shell
-      aws acm add-tags-to-certificate --tags 'Key=CVpnServer,Value=' --certificate-arn 'SERVER_CERT_ARN'
-      aws acm add-tags-to-certificate --tags 'Key=CVpnClientRootChain,Value=' --certificate-arn 'CLIENT_CERT_ARN'
-      ```
+    ```shell
+    aws acm add-tags-to-certificate --tags 'Key=CVpnServer,Value=' --certificate-arn 'SERVER_CERT_ARN'
+    aws acm add-tags-to-certificate --tags 'Key=CVpnClientRootChain,Value=' --certificate-arn 'CLIENT_CERT_ARN'
+    ```
 
- 2. <a name="quick-installation-step-2"></a>_Optional:_ You can use a
-    [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
-    to delegate only the privileges needed to deploy a Client VPN stack.
-
-    [Skip to Step&nbsp;3](#quick-installation-step-3)
-    if you are using Terraform.
-
-    If you are using CloudFormation,
-    [skip to Step&nbsp;3](#quick-installation-step-3)
-    if you do _not_ plan to use
-    [Lights Off](https://github.com/sqlxpert/lights-off-aws)
-    to turn the VPN on and off on a schedule.
-
-    - Create a stack from a locally-saved copy of
-      [cloudformation/10-minute-aws-client-vpn-prereq.yaml](/cloudformation/10-minute-aws-client-vpn-prereq.yaml?raw=true)
-      [right-click to save as...].
-
-    - Name the stack `CVpnPrereq`&nbsp;.
-
-    - Under "Additional settings" &rarr; "Stack policy - optional", you can
-      "Upload a file" and select a locally-saved copy of
-      [10-minute-aws-client-vpn-prereq-policy.json](/10-minute-aws-client-vpn-prereq-policy.json?raw=true)
-      [right-click to save as...]. The stack policy prevents inadvertent
-      replacement or deletion of the deployment role during stack updates,
-      but it cannot prevent deletion of the entire `CVpnPrereq` stack.
-
- 3. <a name="quick-installation-step-3"></a>Install Lights Off using CloudFormation or Terraform.
+ 3. Install the Client VPN CloudFormation stack using CloudFormation or
+    Terraform.
 
     - **CloudFormation**<br/>_Easy_ &check;
 
-      Create a stack from a locally-saved copy of
+      Create a stack "With new resources (standard)" from a locally-saved copy
+      of
       [cloudformation/10-minute-aws-client-vpn.yaml](/cloudformation/10-minute-aws-client-vpn.yaml?raw=true)
       [right-click to save as...].
 
@@ -138,13 +114,6 @@ authority (and Terraform state, if you are using Terraform).
 
       - The parameters are thoroughly documented. Set only the "Essential"
         ones.
-
-      - Under "Permissions - optional" &rarr; "IAM role - optional", select
-        `CVpnPrereq-DeploymentRole` _if_ you created the deployment role in
-        Step&nbsp;2. If your own privileges are limited, you might need
-        explicit permission to pass the role to CloudFormation. See the
-        `CVpnPrereq-SampleDeploymentRolePassRolePol` IAM policy for an
-        example.
 
       - Under "Additional settings" &rarr; "Stack policy - optional", you can
         "Upload a file" and select a locally-saved copy of
@@ -194,7 +163,7 @@ authority (and Terraform state, if you are using Terraform).
       parameter.
 
  4. Follow
-    [Step 7 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config).
+    [Step&nbsp;7 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config).
 
     - Find your VPN in the list of
       [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
@@ -254,15 +223,36 @@ Terraform modules.
 
 ## Automatic Scheduling
 
- 1. If you used CloudFormation to create your `CVpn` stack, check the stack's
-    "Stack info" tab and make sure that "IAM role" is set. If "IAM role" is
-    blank, create the `CVpnPrereq` stack now (review
-    [Quick Installation Steps&nbsp;2](#quick-installation-step-2))
-    and then _update_ your `CVpn` stack, changing nothing until you reach the
-    "Configure stack options" page, on which you will set "IAM role - optional"
-    to `CVpnPrereq-DeploymentRole`&nbsp;.
+ 1. If you used Terraform above,
+    [skip to Automatic Scheduling Step&nbsp;2](#automatic-scheduling-step-2).
 
- 2. [Install Lights Off](https://github.com/sqlxpert/lights-off-aws#quick-start).
+    If you used CloudFormation...
+
+    - Create a stack "With new resources (standard)" from a locally-saved copy
+      of
+      [cloudformation/10-minute-aws-client-vpn-prereq.yaml](/cloudformation/10-minute-aws-client-vpn-prereq.yaml?raw=true)
+      [right-click to save as...].
+
+    - Name this stack `CVpnPrereq`&nbsp;.
+
+    - Under "Additional settings" &rarr; "Stack policy - optional", you can
+      "Upload a file" and select a locally-saved copy of
+      [10-minute-aws-client-vpn-prereq-policy.json](/10-minute-aws-client-vpn-prereq-policy.json?raw=true)
+      [right-click to save as...]. The stack policy prevents inadvertent
+      replacement or deletion of the deployment role during stack updates,
+      but it cannot prevent deletion of the entire `CVpnPrereq` stack.
+
+    - Update your initial `CVpn` stack, changing nothing until the "Configure
+      stack options" page, on which you will set "IAM role - optional" to
+      `CVpnPrereq-DeploymentRole`&nbsp;. You are using a
+      [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
+      to delegate update privileges.
+
+      If your own privileges are limited, you might need explicit permission to
+      _pass_ the role to CloudFormation. See the
+      `CVpnPrereq-SampleDeploymentRolePassRolePol` IAM policy for an example.
+
+ 2. <a name="automatic-scheduling-step-2"></a>[Install Lights Off](https://github.com/sqlxpert/lights-off-aws#quick-start).
 
  3. Update your `CVpn` CloudFormation stack, adding the following stack-level
     tags:
