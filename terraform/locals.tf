@@ -18,13 +18,16 @@ locals {
   # data.aws_region.name marked deprecated
   # in Terraform AWS provider v6.0.0
 
+  cloudformation_path = "${path.module}/cloudformation"
+
+  module_directory = basename(path.module)
   cvpn_tags = merge(
     {
       terraform = "1"
       # CloudFormation stack tag values must be at least 1 character long!
       # https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_Tag.html#API_Tag_Contents
 
-      source = "https://github.com/sqlxpert/10-minute-aws-client-vpn/blob/main/terraform"
+      source = "https://github.com/sqlxpert/10-minute-aws-client-vpn/blob/main/${local.module_directory}"
     },
     var.cvpn_tags,
   )

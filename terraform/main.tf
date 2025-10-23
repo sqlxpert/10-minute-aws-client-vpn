@@ -148,12 +148,12 @@ locals {
 
 resource "aws_cloudformation_stack" "cvpn_prereq" {
   name          = "CVpnPrereq${var.cvpn_stack_name_suffix}"
-  template_body = file("${path.module}/cloudformation/10-minute-aws-client-vpn-prereq.yaml")
+  template_body = file("${local.cloudformation_path}/10-minute-aws-client-vpn-prereq.yaml")
 
   region = local.region
 
   capabilities = ["CAPABILITY_IAM"]
-  policy_body  = file("${path.module}/cloudformation/10-minute-aws-client-vpn-prereq-policy.json")
+  policy_body  = file("${local.cloudformation_path}/10-minute-aws-client-vpn-prereq-policy.json")
 
   tags = local.cvpn_tags
 }
@@ -166,7 +166,7 @@ data "aws_iam_role" "cvpn_deploy" {
 
 resource "aws_cloudformation_stack" "cvpn" {
   name          = "CVpn${var.cvpn_stack_name_suffix}"
-  template_body = file("${path.module}/cloudformation/10-minute-aws-client-vpn.yaml")
+  template_body = file("${local.cloudformation_path}/10-minute-aws-client-vpn.yaml")
 
   region = local.region
 
@@ -179,7 +179,7 @@ resource "aws_cloudformation_stack" "cvpn" {
   }
 
   iam_role_arn = data.aws_iam_role.cvpn_deploy.arn
-  policy_body  = file("${path.module}/cloudformation/10-minute-aws-client-vpn-policy.json")
+  policy_body  = file("${local.cloudformation_path}/10-minute-aws-client-vpn-policy.json")
 
   tags = merge(
     local.cvpn_tags,
