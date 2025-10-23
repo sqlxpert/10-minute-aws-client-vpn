@@ -133,7 +133,7 @@ authority (and Terraform state, if you are using Terraform).
 
       ```terraform
       module "cvpn" {
-        source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=v4.0.1"
+        source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=v4.1.0"
           # Reference a specific version from github.com/sqlxpert/10-minute-aws-client-vpn/releases
 
         cvpn_params = {

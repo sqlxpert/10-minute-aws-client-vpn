@@ -10,10 +10,9 @@ locals {
 
   partition = local.caller_arn_parts["partition"]
 
-  region = (
-    var.cvpn_region == ""
-    ? data.aws_region.current.region
-    : var.cvpn_region
+  region = coalesce(
+    var.cvpn_region,
+    data.aws_region.current.region
   )
   # data.aws_region.region added,
   # data.aws_region.name marked deprecated

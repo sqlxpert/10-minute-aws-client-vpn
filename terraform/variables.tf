@@ -31,9 +31,9 @@ variable "cvpn_params" {
     LogsRetainDays           = optional(number, 7)
     SsmParamPath             = optional(string, "/cloudformation")
 
-    # Repeat defaults from ../cloudformation/10-minute-aws-client-vpn.yaml
+    # Repeat defaults from cloudformation/10-minute-aws-client-vpn.yaml
   })
-  description = "VPN CloudFormation stack parameter map. Keys are parameter names from ../cloudformation/10-minute-aws-client-vpn.yaml ; parameters are described there. Required key: TargetSubnetId . Because in Terraform the main subnet determines the VPC, VpcId is not allowed. If BackupTargetSubnetId is specified but that subnet is in a different VPC, no matching subnet will be found and an error will occur. For CustomClientSecGrpIds , custom security groups not in the VPC will be ignored, potentially leading to an empty list and creation of the generic security groups. If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Other optional keys: ClientIpv4CidrBlock , ProtocolAndPort , DnsServerIpv4Addr , LogGroupPath , CloudWatchLogsKmsKey , LogsRetainDays and SsmParamPath . Because certificates are identified by tag, ServerCertificateArn and ClientRootCertificateChainArn are not allowed."
+  description = "VPN CloudFormation stack parameter map. Keys are parameter names from cloudformation/10-minute-aws-client-vpn.yaml ; parameters are described there. Required key: TargetSubnetId . Because in Terraform the main subnet determines the VPC, VpcId is not allowed. If BackupTargetSubnetId is specified but that subnet is in a different VPC, no matching subnet will be found and an error will occur. For CustomClientSecGrpIds , custom security groups not in the VPC will be ignored, potentially leading to an empty list and creation of the generic security groups. If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Other optional keys: ClientIpv4CidrBlock , ProtocolAndPort , DnsServerIpv4Addr , LogGroupPath , CloudWatchLogsKmsKey , LogsRetainDays and SsmParamPath . Because certificates are identified by tag, ServerCertificateArn and ClientRootCertificateChainArn are not allowed."
 }
 
 
