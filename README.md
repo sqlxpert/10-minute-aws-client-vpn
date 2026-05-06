@@ -94,7 +94,7 @@ you specify, when a client presents the certificate you specify.
 
 ## Quick Installation
 
->Before you begin, take a deep breath! Certificate creation is shorter than it
+>Before you begin, take a deep breath! Certificate creation is faster than it
 looks. To avoid errors, read each step completely before doing it. You will
 have to switch between this ReadMe file and AWS's documentation.
 >
@@ -383,9 +383,10 @@ Set `VpnEndpointAndOrVpcSubnetAssociation` to `VpnEndpointOnly` for
 the first CloudFormation stack or Terraform module instance. The CloudFormation
 stack is named `CVpn`&nbsp;.
 
-Or, create the VPN endpoint using any means you like. This gives you the
-freedom to customize properties such as IPv6 support, the authentication
-method, and the banner message.
+Or, create the VPN endpoint using any CloudFormation template, Terraform
+module or other approach that you like! Creating your own VPN endpoint gives
+you the freedom to customize properties such as IPv6 support, the
+authentication method, and the banner message.
 
 AWS's
 [quick start](https://console.aws.amazon.com/vpcconsole/home#CreateClientVpnEndpoint:createMode=QUICKSTART),
@@ -408,13 +409,13 @@ is other than `CVpn`&nbsp;.
 If you configure
 [automatic scheduling](#automatic-scheduling),
 a very-low-privilege CloudFormation service role is provided for
-`VpcSubnetAssociationOnly` stacks or module instances. CloudFormation can use
-this role only to create and delete associations between a VPN endpoint and VPC
-subnets. The role cannot be used to create, tag, modify, or delete the VPN
-endpoint, the generic security groups, or any other resource types. In
-CloudFormation, set "IAM role - optional" to `CVpnPrereq-OperationRole` instead
-of `CVpnPrereq-DeploymentRole`&nbsp;. The Terraform module selects the
-appropriate role automatically.
+`VpcSubnetAssociationOnly` stacks. CloudFormation can use this role only to
+create and delete associations between a VPN endpoint and VPC subnets. The role
+cannot be used to create, tag, modify, or delete the VPN endpoint, the generic
+security groups, or any other resource types. In CloudFormation, set
+"IAM role - optional" to `CVpnPrereq-OperationRole` instead of
+`CVpnPrereq-DeploymentRole`&nbsp;. The Terraform module selects the appropriate
+role automatically.
 
 Keep in mind that one VPC subnet association grants access to network resources
 in all of the VPC's availability zones. Additional subnet associations, each of
