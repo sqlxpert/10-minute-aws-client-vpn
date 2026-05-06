@@ -17,8 +17,11 @@
 # dependency-free.
 
 data "aws_ssm_parameter" "cvpn_client_sec_grp_id" {
-  count = try(aws_cloudformation_stack.cvpn.parameters["CustomClientSecGrpIds"], "") == "" ? 1 : 0
-  # CustomClientSecGrpIds is a string in HCL, not a list; see above!
+  count = (
+    local.create_endpoint &&
+    (try(aws_cloudformation_stack.cvpn.parameters["CustomClientSecGrpIds"], "") == "")
+    # CustomClientSecGrpIds is a string in HCL, not a list; see main.tf
+  ) ? 1 : 0
 
   region = local.region
   name = join("/", [
@@ -29,7 +32,11 @@ data "aws_ssm_parameter" "cvpn_client_sec_grp_id" {
 }
 
 data "aws_security_group" "cvpn_client" {
-  count = try(aws_cloudformation_stack.cvpn.parameters["CustomClientSecGrpIds"], "") == "" ? 1 : 0
+  count = (
+    local.create_endpoint &&
+    (try(aws_cloudformation_stack.cvpn.parameters["CustomClientSecGrpIds"], "") == "")
+    # CustomClientSecGrpIds is a string in HCL, not a list; see main.tf
+  ) ? 1 : 0
 
   region = local.region
   id     = data.aws_ssm_parameter.cvpn_client_sec_grp_id[0].insecure_value
@@ -40,20 +47,37 @@ output "cvpn_client_sec_grp_id" {
     data.aws_security_group.cvpn_client[0].id,
     null
   )
-  description = "ID of the generic security group for Client VPN clients. Defined only if not custom security groups were supplied (see the CustomClientSecGrpIds CloudFormation stack parameter."
+
+  description = "ID of the generic VPN client security group. Defined if no custom security groups (CustomClientSecGrpIds) were supplied and VpnEndpointAndOrVpcSubnetAssociation is not VpcSubnetAssociationOnly."
 }
 
 
 
-data "aws_ec2_client_vpn_endpoint" "cvpn" {
+data "aws_ssm_parameter" "cvpn_client_vpn_endpoint_id" {
+  count = local.create_endpoint ? 1 : 0
+
   region = local.region
-  tags = {
-    Name = aws_cloudformation_stack.cvpn.name
-    # "aws:cloudformation:stack-name" tag not yet available, as of 2025-10
-  }
+  name = join("/", [
+    aws_cloudformation_stack.cvpn.parameters["SsmParamPath"],
+    aws_cloudformation_stack.cvpn.name,
+    "EndpointId"
+  ])
+}
+
+data "aws_ec2_client_vpn_endpoint" "cvpn" {
+  count = local.create_endpoint ? 1 : 0
+
+  region = local.region
+  client_vpn_endpoint_id = (
+    data.aws_ssm_parameter.cvpn_client_sec_grp_id[0].insecure_value
+  )
 }
 
 output "cvpn_endpoint_id" {
-  value       = data.aws_ec2_client_vpn_endpoint.cvpn.client_vpn_endpoint_id
-  description = "ID of the Client VPN endpoint. The self-service portal is not available, due to use of mutual TLS authentication. Download the VPN client configuration file using the AWS Console (VPC service) or the command-line interface: aws ec2 export-client-vpn-client-configuration --output text --client-vpn-endpoint-id 'cvpn-endpoint-00123456789abcdef'"
+  value = try(
+    data.aws_ec2_client_vpn_endpoint.cvpn[0].client_vpn_endpoint_id,
+    null
+  )
+
+  description = "ID of Client VPN endpoint. Self-service portal is not available, due to use of mutual TLS authentication. AWS CLI: aws ec2 export-client-vpn-client-configuration --output text --client-vpn-endpoint-id 'cvpn-endpoint-00123456789abcdef'"
 }

@@ -5,35 +5,88 @@
 
 variable "cvpn_stack_name_suffix" {
   type        = string
-  description = "Optional CloudFormation stack name suffix, for blue/green deployments or other scenarios in which multiple stacks created from the same template are needed in the same region, in the same AWS account."
-
-  default = ""
+  description = "Optional CloudFormation stack name suffix, for blue/green deployments or other scenarios in which multiple stacks created from the same template are needed in the same region, in the same AWS account. If cvpn_params[\"VpnEndpointAndOrVpcSubnetAssociation\"] is VpcSubnetAssociationOnly , set this to 1 , 2 , etc. to distinguish VPC subnets attached to the VPC."
+  default     = ""
 }
 
 
 
-# You may wish to customize this interface, for example by omitting subnet IDs,
+# You may wish to customize this interface, for example by omitting subnet ID,
 # security group IDs, and the KMS key identifier in favor of looking up those
 # resources based on tags (if you have permission to tag resources that are not
 # dedicated to the VPN).
 
+locals {
+  cvpn_scopes_set = toset([
+    "BothVpnEndpointAndVpcSubnetAssociation",
+    "VpcSubnetAssociationOnly",
+    "VpnEndpointOnly",
+  ])
+
+  cvpn_scope_string = join(", ", local.cvpn_scopes_set)
+}
+
 variable "cvpn_params" {
   type = object({
-    TargetSubnetId           = string
-    BackupTargetSubnetId     = optional(string, "")
-    ClientIpv4CidrBlock      = optional(string, "10.255.252.0/22")
-    ProtocolAndPort          = optional(string, "udp 1194")
-    DestinationIpv4CidrBlock = optional(string, "")
-    DnsServerIpv4Addr        = optional(string, "")
-    CustomClientSecGrpIds    = optional(list(string), [])
-    LogGroupPath             = optional(string, "/aws/vpc/clientvpn")
-    CloudWatchLogsKmsKey     = optional(string, "")
-    LogsRetainDays           = optional(number, 7)
-    SsmParamPath             = optional(string, "/cloudformation")
+    VpnEndpointAndOrVpcSubnetAssociation = optional(string, "BothVpnEndpointAndVpcSubnetAssociation")
+    VpcId                                = optional(string, "")
+    DestinationIpv4CidrBlock             = optional(string, "")
+    ClientIpv4CidrBlock                  = optional(string, "10.255.252.0/22")
+
+    TargetSubnetId = optional(string, "")
+
+    SsmParamPath = optional(string, "/cloudformation")
+
+    ProtocolAndPort        = optional(string, "udp 1194")
+    CustomClientSecGrpIds  = optional(list(string), [])
+    DnsServerIpv4Addresses = optional(list(string), [])
+
+    RetentionInDays      = optional(number, 7)
+    CloudWatchLogsKmsKey = optional(string, "")
+    LogGroupPath         = optional(string, "/aws/vpc/clientvpn")
+
+    ExistingEndpointId        = optional(string, "")
+    ExistingEndpointStackName = optional(string, "CVpn")
 
     # Repeat defaults from cloudformation/10-minute-aws-client-vpn.yaml
   })
-  description = "VPN CloudFormation stack parameter map. Keys are parameter names from cloudformation/10-minute-aws-client-vpn.yaml ; parameters are described there. Required key: TargetSubnetId . Because in Terraform the main subnet determines the VPC, VpcId is not allowed. If BackupTargetSubnetId is specified but that subnet is in a different VPC, no matching subnet will be found and an error will occur. For CustomClientSecGrpIds , custom security groups not in the VPC will be ignored, potentially leading to an empty list and creation of the generic security groups. If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Other optional keys: ClientIpv4CidrBlock , ProtocolAndPort , DnsServerIpv4Addr , LogGroupPath , CloudWatchLogsKmsKey , LogsRetainDays and SsmParamPath . Because certificates are identified by tag, ServerCertificateArn and ClientRootCertificateChainArn are not allowed."
+  description = "VPN CloudFormation stack parameter map. Keys are parameter names from cloudformation/10-minute-aws-client-vpn.yaml ; parameters are described there. Required key: TargetSubnetId , unless you set VpnEndpointAndOrVpcSubnetAssociation to VpnEndpointOnly , in which case VpcId is required. Do not specify both VpcI and TargetSubnetId ; the latter determines the VPC. For CustomClientSecGrpIds , custom security groups not in the VPC will be ignored, potentially leading to an empty list and creation of the generic security groups. If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Because certificates are identified by tag, ServerCertificateArn and ClientRootCertificateChainArn are not allowed. Enable , managed in CloudFormation, is not allowed. If VpnEndpointAndOrVpcSubnetAssociation is VpcSubnetAssociationOnly and ExistingEndpointId is blank, append cvpn_stack_name_suffix from the VpnEndpointOnly module instance to ExistingEndpointStackName for this module instance."
+
+  validation {
+    error_message = "The value of the VpnEndpointAndOrVpcSubnetAssociation map key must be one of: ${local.cvpn_scope_string} ."
+
+    condition = containts(
+      local.cvpn_scopes_set,
+      var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]
+    )
+  }
+
+  validation {
+    error_message = "If you are creating a VPN endpoint only, specify a value for the VpcId map key."
+
+    condition = (
+      (var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"] != "VpnEndpointOnly")
+      || (var.cvpn_params["VpcId"] != "")
+    )
+  }
+
+  validation {
+    error_message = "If you are creating a VPC subnet attachment, specify a value for the TargetSubnetId map key."
+
+    condition = (
+      (var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"] == "VpnEndpointOnly")
+      || (var.cvpn_params["TargetSubnetId"] != "")
+    )
+  }
+
+  validation {
+    error_message = "If you are creating a VPC subnet attachment, do not specify a value for the VpcId map key. The subnet determines the VPC."
+
+    condition = (
+      (var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"] == "VpnEndpointOnly")
+      || (var.cvpn_params["VpcId"] == "")
+    )
+  }
 }
 
 

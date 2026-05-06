@@ -31,4 +31,10 @@ locals {
     },
     var.cvpn_tags,
   )
+
+  cvpn_scope               = var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]
+  create_endpoint          = ("VpcSubnetAssociationOnly" != local.cvpn_scope)
+  reference_endpoint       = ("VpcSubnetAssociationOnly" == local.cvpn_scope)
+  reference_endpoint_stack = (var.cvpn_params["ExistingEndpointId"] == "")
+  create_target_net_assoc  = ("VpnEndpointOnly" != local.cvpn_scope)
 }

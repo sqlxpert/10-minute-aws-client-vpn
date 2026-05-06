@@ -12,85 +12,113 @@ How this template minimizes costs:
  1. [Split-tunneling](https://en.wikipedia.org/wiki/Split_tunneling).
     Only AWS private network (VPC) traffic uses the VPN.
 
- 2. Single Availability Zone, by default.
-    [VPN clients can access VPC resources in any Availability Zone in the same
-    region at no extra charge](https://aws.amazon.com/about-aws/whats-new/2022/04/aws-data-transfer-price-reduction-privatelink-transit-gateway-client-vpn-services/).
+ 2. Single availability zone. Access network resources
+    [in any availability zone in the region at no extra charge](https://aws.amazon.com/about-aws/whats-new/2022/04/aws-data-transfer-price-reduction-privatelink-transit-gateway-client-vpn-services).
 
  3. Optional on/off scheduling with
     [github.com/sqlxpert/lights-off-aws](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule)&nbsp;.
 
     <details>
-      <summary>Cost savings...</summary>
+      <summary>Savings...</summary>
 
-    <br/>
+    ---
 
     |VPN usage|Price (1&nbsp;hour)|Hours (7&nbsp;days)|Hours (365&nbsp;days)|Cost (365&nbsp;days)|
     |:---|:---:|:---:|:---:|:---:|
-    |_Always&nbsp;on:_|||||
+    |**Always&nbsp;on:**|||||
     |Endpoint associated|10¢|168|8,760|$876|
     |1&nbsp;client connected|5¢|40|2,080|$104|
     |Total||||$980|
-    |_Work&nbsp;hours&nbsp;only:_|||||
+    |**Work&nbsp;hours:**|||||
     |Endpoint associated|10¢|**50**|**2,607**|**$261**|
     |1&nbsp;client connected|5¢|40|2,080|$104|
     |Total||||**$365**|
 
     $365 per year divided by 260&nbsp;work days gives $1.41&nbsp;per work day.
 
-    > [AWS Client VPN prices](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing)
-    in the `us-east-1` region were checked in October,&nbsp;2025 but can change
-    at any time. NAT gateway, data transfer, and other charges may also apply.
+    >[AWS Client VPN prices](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing)
+    in the `us-east-1` region were checked in May,&nbsp;2026 but can change
+    at any time. Public IPv4 address charges also apply. If a VPC is shared,
+    some charges are billed to the AWS account that owns the VPC. NAT gateway,
+    data transfer, and other charges may also apply.
+
+    ---
 
     </details>
 
 <details>
   <summary>Rationale for connecting to AWS with a VPN...</summary>
 
-<br/>
+---
 
-Experts discourage relying on the strength of the perimeter around your private
-network, but sometimes, perimeter security _is_ the available defense, and a
-virtual private network connection is necessary. For example, to access an AWS
-Elastic File System (EFS) volume from your local computer, you must use a VPN,
-so that the Network File System (NFS) client connection originates _inside_
-your AWS Virtual Private Cloud (VPC). NFS server software was not designed for
-exposure to the public Internet.
+"Zero-trust" proponents discourage relying on the strength of the perimeter
+around your private network, but sometimes, perimeter security _is_ the
+available defense, and a virtual private network connection is necessary. For
+example, to access an AWS Elastic File System (EFS) volume from your local
+computer, you must use a VPN, so that the Network File System (NFS) client
+connection originates _inside_ your AWS Virtual Private Cloud (VPC). NFS server
+software was not designed for exposure to the public Internet.
+
+---
+
+</details>
+
+<details>
+  <summary>Transit Gateway integration...</summary>
+
+---
+
+It's exciting that
+[an AWS Client VPN endpoint can be attached to a Transit Gateway](https://aws.amazon.com/about-aws/whats-new/2026/04/aws-client-vpn-transit-gateway)
+for easy access to multiple private AWS networks, as of
+April&nbsp;23,&nbsp;2026.
+
+This template is for use with a single VPC. Direct attachment to one VPC is the
+correct level of complexity for most AWS users, including small, cost-sensitive
+users. This configuration also allows for automatic creation and deletion of
+network route table entries.
+
+A Transit Gateway attachment and the associated routes become permanent
+properties, making temporary VPN shutdowns impractical.
+
+---
 
 </details>
 
 >&#128274; Software supply chain security is on everyone's mind. These VPN
-templates do not contain executable code. I have made GitHub releases immutable
-as of `v4.1.2` (2026-05-05). You will use third-party software from OpenVPN or
-AWS to generate certificates and connect to the VPN; I provide links to release
+templates do not contain executable code. I made GitHub releases immutable as
+of `v4.1.2` (2026-05-05). You will use third-party software from OpenVPN or AWS
+to generate certificates and connect to the VPN; I provide links to release
 notes for security awareness. The VPN grants access to the private AWS network
 you specify, when a client presents the certificate you specify.
 
 ## Quick Installation
 
-> Before you begin, take a deep breath! Certificate setup is shorter than it
+>Before you begin, take a deep breath! Certificate creation is shorter than it
 looks. To avoid errors, read each step completely before doing it. You will
 have to switch between this ReadMe file and AWS's documentation.
-
-> [AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html)
-might be useful for setup and maintenance, but be aware of
-[limitations on persistent storage](https://docs.aws.amazon.com/cloudshell/latest/userguide/limits.html#persistent-storage-limitations)
-if you use your free CloudShell home directory to store your certificate
-authority (and Terraform state, if you are using Terraform).
+>
+>[AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html)
+works well for setup, but move your certificate authority (and your Terraform
+state file, if applicable) afterward, due to the
+[120-day limit](https://docs.aws.amazon.com/cloudshell/latest/userguide/limits.html#:~:text=After%20120%20days,automatically%20deleted).
 
  1. Create the VPN certificate(s) by following AWS's
     [mutual authentication steps](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-auth-mutual-enable.html).
 
-    - Scrutinize the
+    - &#9888; Check release notes for the version of
       [github.com/OpenVPN/easy-rsa](https://github.com/OpenVPN/easy-rsa/releases)
-      release that you will use to create certificates for the VPN.
-      As of May&nbsp;5,&nbsp;2026, OpenVPN has not enabled immutable releases
-      for this repository.
+      that you will use to create VPN certificates. As of 2026-05-05, the
+      latest release is `v3.2.6` (2026-03-13) and OpenVPN has not enabled
+      immutable releases; a careful release integrity check may be necessary.
+      Also check industry security bulletins.
 
     - Copy the _individual_ Linux/macOS commands and execute them verbatim.
 
-    - Copy and edit the _block_ of commands before executing those. Not
-      replacing `custom_folder` is actually fine for now (if only AWS's
-      technical writers had picked a meaningful folder name instead of a
+    - Copy and edit the
+      [_block_ of commands](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-auth-mutual-enable.html#:~:text=command.-,The%20following,in%20your%20home%20directory.)
+      before executing them together. Keep `custom_folder` for now (if only
+      AWS's technical writers had selected a plausible folder name instead of a
       placeholder!), but after the `mkdir` line, please insert:
 
       ```shell
@@ -116,26 +144,33 @@ authority (and Terraform state, if you are using Terraform).
 
     - **CloudFormation**<br/>_Easy_ &check;
 
-      Create a stack "With new resources (standard)" from a locally-saved copy
-      of
-      [cloudformation/10-minute-aws-client-vpn.yaml](/../../blob/v4.1.2/cloudformation/10-minute-aws-client-vpn.yaml?raw=true)
+      [Create a CloudFormation stack](https://console.aws.amazon.com/cloudformation/home#/stacks/create).
+
+      Select "Upload a template file", then select "Choose file" and navigate
+      to a locally-saved copy of
+      [cloudformation/10-minute-aws-client-vpn.yaml](/../../blob/v5.0.0/cloudformation/10-minute-aws-client-vpn.yaml?raw=true)
       [right-click to save as...].
 
       - Name the stack `CVpn`&nbsp;.
 
-      - The parameters are thoroughly documented. Set only the "Essential"
-        ones.
+      - The parameters are thoroughly documented. Set the "Required" ones.
+        Find your VPC in the list of
+        [VPCs](https://console.aws.amazon.com/vpcconsole/home#vpcs:).
 
       - Under "Additional settings" &rarr; "Stack policy - optional", you can
         "Upload a file" and select a locally-saved copy of
-        [cloudformation/10-minute-aws-client-vpn-policy.json](/../../blob/v4.1.2/cloudformation/10-minute-aws-client-vpn-policy.json?raw=true)
+        [cloudformation/10-minute-aws-client-vpn-policy.json](/../../blob/v5.0.0/cloudformation/10-minute-aws-client-vpn-policy.json?raw=true)
         [right-click to save as...]. The stack policy prevents replacement or
         deletion of certain resources during stack updates, producing an error
         if you attempt
         [parameter updates](#parameter-updates)
-        that are not possible.
+        that are not supported.
 
     - **Terraform**
+
+      _Although setting up Terraform is more difficult for new AWS users, the
+      Terraform module makes configuring the VPN easier by looking up details
+      such as the VPC's ID and address range._
 
       Check that you have at least:
 
@@ -146,7 +181,7 @@ authority (and Terraform state, if you are using Terraform).
 
       ```terraform
       module "cvpn" {
-        source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=v4.1.2"
+        source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=v5.0.0"
         # Reference a specific version from github.com/sqlxpert/10-minute-aws-client-vpn/releases
         # Check that the release is immutable!
 
@@ -156,8 +191,7 @@ authority (and Terraform state, if you are using Terraform).
       }
       ```
 
-      Edit the subnet&nbsp;ID to match the ID of a subnet in the VPN's
-      primary (or sole) Availability Zone.
+      Edit the subnet&nbsp;ID to match the ID of a subnet in the desired VPC.
 
       Have Terraform download the module's source code. Review the plan
       before typing `yes` to allow Terraform to proceed with applying the
@@ -199,10 +233,11 @@ authority (and Terraform state, if you are using Terraform).
 
  5. Download either the latest
     [OpenVPN](https://openvpn.net)
-    client (Resources &rarr; Connect Client &rarr; Download) or
-    [AWS client](https://aws.amazon.com/vpn/client-vpn-download/).
+    client (Resources &rarr; Download OpenVPN)
+    or
+    [AWS client](https://aws.amazon.com/vpn/client-vpn-download).
 
-    - Check
+    - &#9888; Check
       [OpenVPN Connect release notes](https://openvpn.net/connect-docs/release-notes.html)
       or
       AWS client release notes
@@ -211,8 +246,7 @@ authority (and Terraform state, if you are using Terraform).
       [macOS](https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-macos-release-notes.html)
       |
       [Windows](https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-windows-release-notes.html)),
-      plus industry security bulletins relevant to the software you are
-      installing.
+      plus relevant industry security bulletins.
 
  6. Import your edited configuration file to the client.
 
@@ -244,21 +278,23 @@ authority (and Terraform state, if you are using Terraform).
 <details>
   <summary>To turn the VPN on and off on a schedule...</summary>
 
+<br/>
+
  1. If you used Terraform above,
     [skip to Automatic Scheduling Step&nbsp;2](#automatic-scheduling-step-2).
 
     If you used CloudFormation...
 
-    - Create a stack "With new resources (standard)" from a locally-saved copy
-      of
-      [cloudformation/10-minute-aws-client-vpn-prereq.yaml](/../../blob/v4.1.2/cloudformation/10-minute-aws-client-vpn-prereq.yaml?raw=true)
+    - [Create a stack](https://console.aws.amazon.com/cloudformation/home#/stacks/create)
+      from a locally-saved copy of
+      [cloudformation/10-minute-aws-client-vpn-prereq.yaml](/../../blob/v5.0.0/cloudformation/10-minute-aws-client-vpn-prereq.yaml?raw=true)
       [right-click to save as...].
 
     - Name this stack `CVpnPrereq`&nbsp;.
 
     - Under "Additional settings" &rarr; "Stack policy - optional", you can
       "Upload a file" and select a locally-saved copy of
-      [cloudformation/10-minute-aws-client-vpn-prereq-policy.json](/../../blob/v4.1.2/cloudformation/10-minute-aws-client-vpn-prereq-policy.json?raw=true)
+      [cloudformation/10-minute-aws-client-vpn-prereq-policy.json](/../../blob/v5.0.0/cloudformation/10-minute-aws-client-vpn-prereq-policy.json?raw=true)
       [right-click to save as...]. The stack policy prevents inadvertent
       replacement or deletion of the deployment role during stack updates,
       but it cannot prevent deletion of the entire `CVpnPrereq` stack.
@@ -297,7 +333,7 @@ authority (and Terraform state, if you are using Terraform).
       [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Week_dates).
     - Times are in Universal Coordinated Time (UTC). This converter may be
       helpful:
-      [www.timeanddate.com](https://www.timeanddate.com/worldclock/converter.html?iso=20250320T110000&p1=224&p2=250&p3=1440&p4=37&p5=44)&nbsp;.
+      [www.timeanddate.com](https://www.timeanddate.com/worldclock/converter.html?iso=20260501T110000&p1=224&p2=250&p3=1440&p4=37&p5=44)&nbsp;.
     - UTC has no provision for Daylight Saving Time/Summer Time. Leave a
       buffer at the end of your work day to avoid having to change schedules.
 
@@ -307,25 +343,86 @@ authority (and Terraform state, if you are using Terraform).
     being created and deleted as scheduled. Check actual costs after a few
     days, and set up alerts with
     [AWS Budgets](https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html).
+    Keep in mind that if a VPC is shared, some charges are billed to the AWS
+    account that owns the VPC.
 
 </details>
 
 ## Parameter Updates
 
 You can toggle the `Enable` parameter (always in CloudFormation, never from
-Terraform).
+Terraform). This has no effect if `VpnEndpointAndOrVpcSubnetAssociation` is
+`VpnEndpointOnly`&nbsp;.
 
-You can add or remove a backup subnet (in a second Availability Zone), but you
-must do it while the VPN is enabled, or the change won't register.
+You can also switch between generic and custom VPN client security groups, and
+change the retention period for connection log entries. These changes have no
+effect if `VpnEndpointAndOrVpcSubnetAssociation` is
+`VpcSubnetAssociationOnly`&nbsp;.
 
-You can also switch between generic and custom VPN client security groups.
-
-Do not try to change the VPC, the IP address ranges, or the path parameters
-after the `CVpn` stack has been created. Instead, create a `CVpn2` stack (in
-Terraform, create a new module instance with
+Do not try to change the VPC, the IP address ranges, the name paths, or any
+other parameters after the `CVpn` stack has been created. Instead, create a
+`CVpn2` stack (in Terraform, create a new module instance with
 `cvpn_stack_name_suffix = "2"`&nbsp;), then update the _remote_ line of
 your client configuration file and re-import the configuration file to your VPN
 client utility.
+
+## Separating the VPN Endpoint from the VPC Subnet Attachments
+
+<details>
+  <summary>For extra flexibility and security...</summary>
+
+<br/>
+
+The CloudFormation template also supports creation of separate stacks for the
+VPN endpoint and each VPC subnet attachment. The Terraform module supports
+creation of separate module instances.
+
+### VPN Endpoint
+
+Set `VpnEndpointAndOrVpcSubnetAssociation` to `VpnEndpointOnly` for
+the first CloudFormation stack or Terraform module instance. The CloudFormation
+stack is named `CVpn`&nbsp;.
+
+Or, create the VPN endpoint using any means you like. This gives you the
+freedom to customize properties such as IPv6 support, the authentication
+method, and the banner message.
+
+AWS's
+[quick start](https://console.aws.amazon.com/vpcconsole/home#CreateClientVpnEndpoint:createMode=QUICKSTART),
+which was
+[introduced](https://aws.amazon.com/about-aws/whats-new/2026/01/aws-client-vpn-onboarding-quickstart-setup)
+on January&nbsp;7,&nbsp;2026, is quite helpful for configuring Client VPN.
+Sadly, it doesn't guide you through creating the certificates.
+
+### VPC Subnet Association Modules and/or Stacks
+
+Set `VpnEndpointAndOrVpcSubnetAssociation` to `VpcSubnetAssociationOnly` for
+each additional CloudFormation stack or Terraform module instance. These stacks
+are named `CVpnSubnet1`&nbsp;, `CVpnSubnet2`&nbsp;, and so on. (In Terraform,
+set `cvpn_stack_name_suffix` to `1` or `2`&nbsp;.) Unless you set
+`ExistingEndpointId` directly, each VPC subnet association stack automatically
+references the AWS Systems Manager (SSM) Parameter Store parameter created by
+the VPN endpoint stack. Change `ExistingEndpointStackName` if that stack's name
+is other than `CVpn`&nbsp;.
+
+If you configure
+[automatic scheduling](#automatic-scheduling),
+a very-low-privilege CloudFormation service role is provided for
+`VpcSubnetAssociationOnly` stacks or module instances. CloudFormation can use
+this role only to create and delete associations between a VPN endpoint and VPC
+subnets. The role cannot be used to create, tag, modify, or delete the VPN
+endpoint, the generic security groups, or any other resource types. In
+CloudFormation, set "IAM role - optional" to `CVpnPrereq-OperationRole` instead
+of `CVpnPrereq-DeploymentRole`&nbsp;. The Terraform module selects the
+appropriate role automatically.
+
+Keep in mind that one VPC subnet association grants access to network resources
+in all of the VPC's availability zones. Additional subnet associations, each of
+which covers a different availability zone, provide redundancy at an extra
+cost. See the table in Item&nbsp;3 of the
+[goals](#goals).
+
+</details>
 
 ## Terraform Details
 
@@ -339,13 +436,18 @@ client utility.
 |`module.cvpn.cvpn_client_sec_grp_id`|[`aws_security_group`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group.html).[`id`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group.html#id-1)|
 ||[`data.aws_security_group`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/security_group).[`id`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/security_group#id-1)|
 
-To accept traffic from VPN clients, reference `module.cvpn.cvpn_client_sec_grp_id` in:
+Neither output is available if
+`cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]` is
+`VpcSubnetAssociationOnly`&nbsp;.
 
-- [`aws_vpc_security_group.`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group).[`ingress`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group#ingress).[`security_groups`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group#security_groups-1) or
+The VPN client security group is not available if
+`cvpn_params["CustomClientSecGrpIds"]` is set.
+
+To accept traffic from VPN clients, reference
+`module.cvpn.cvpn_client_sec_grp_id` in:
+
+- [`aws_vpc_security_group.`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group).[`ingress`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group#ingress).[`security_groups`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group#security_groups-1)
 - [`aws_vpc_security_group_ingress_rule`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule).[`referenced_security_group_id`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule#referenced_security_group_id-1)
-
-of server or listener security groups. &#9888; The security group output is not
-available if `cvpn_params["CustomClientSecGrpIds"]` was set.
 
 ### Creating Certificates in Terraform
 
@@ -370,7 +472,8 @@ it permission to:
 - List, describe, create, tag, update, untag, and delete CloudFormation
   stacks
 - Set and get CloudFormation stack policies
-- Pass `CVpnPrereq-DeploymentRole-*` to CloudFormation
+- Pass `CVpnPrereq-DeploymentRole-*` and `CVpnPrereq-OperationRole-*` to
+  CloudFormation
 - List, describe, and get tags for, all `data` sources. For a list, run:
 
   ```shell
@@ -401,18 +504,16 @@ regulating resource naming and tagging, and then by using:
 Check Service and Resource Control Policies (SCPs and RCPs), as well as
 resource policies (such as KMS key policies).
 
-The deployment role defined in the `CVpnPrereq` stack gives CloudFormation the
-permissions it needs to create the `CVpn` stack. Terraform itself does not need
-the deployment role's permissions.
+The deployment roles defined in the `CVpnPrereq` stack gives CloudFormation the
+permissions it needs to create the `CVpn` or `CVpnSubnet` stack. Terraform
+itself does not need the deployment role's permissions.
 
 </details>
 
 ## Feedback
 
 To help improve the 10-minute AWS Client VPN template, please
-[report bugs](https://github.com/sqlxpert/10-minute-aws-client-vpn/issues)
-and
-[propose changes](https://github.com/sqlxpert/10-minute-aws-client-vpn/pulls).
+[report bugs](https://github.com/sqlxpert/10-minute-aws-client-vpn/issues).
 
 ## Licenses
 

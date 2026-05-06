@@ -10,82 +10,58 @@ Parameters:
 
   PlaceholderHelp:
     Type: String
-    Default: "https://github.com/sqlxpert/10-minute-aws-client-vpn"
+    Default: "github.com/sqlxpert/10-minute-aws-client-vpn"
 
   PlaceholderSuggestedStackName:
     Type: String
     Default: "CVpn"
 
+  PlaceholderSuggestedStackNamesVpcSubnetAssociationOnly:
+    Type: String
+    Default: "CVpnSubnet1,CVpnSubnet2,CVpnSubnet3"
+
   PlaceholderSuggestedStackPolicyBody:
     Type: String
     Default: "https://github.com/sqlxpert/10-minute-aws-client-vpn/blob/main/cloudformation/10-minute-aws-client-vpn-policy.json?raw=true"
 
-  Enable:
+  VpnEndpointAndOrVpcSubnetAssociation:
     Type: String
     Description: >-
-      Whether to associate your virtual private network (VPN) with your
-      virtual private cloud (VPC), making it possible to connect. Change this
-      to "false" whenever the VPN is not needed; AWS charges for associations
-      even when no clients are connected. (Re)creating VPN associations takes
-      several minutes. To delete and recreate on a schedule, see
-      https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule
+      Whether this stack defines a VPN endpoint; an association between a VPN
+      endpoint and a VPC subnet; or both the VPN endpoint and a VPC subnet
+      association.
+      The default, "BothVpnEndpointAndVpcSubnetAssociation", yields a
+      self-contained VPN stack. To create a second VPC subnet association,
+      reference the VPN endpoint in a separate stack.
+      Choose "VpcSubnetAssociationOnly" to reference an existing VPN endpoint.
+      Choose "VpnEndpointOnly" to create a VPN endpoint that will be referenced
+      in a separate stack.
     AllowedValues:
-      - "false"
-      - "true"
-    Default: "true"
-
-  ServerCertificateArn:
-    Type: String
-    Description: >-
-      The TLS certificate for the VPN server. Specify the ARN of an AWS
-      Certificate Manager certificate.
-
-  ClientRootCertificateChainArn:
-    Type: String
-    Description: >-
-      The TLS certificate chain for VPN client certificates. Specify the ARN
-      of an AWS Certificate Manager certificate. Leave blank to use the server
-      certificate, in which case a client with any certificate from the same
-      certificate authority (CA) can connect.
-    Default: ""
+      - BothVpnEndpointAndVpcSubnetAssociation
+      - VpcSubnetAssociationOnly
+      - VpnEndpointOnly
+    Default: BothVpnEndpointAndVpcSubnetAssociation
 
   VpcId:
-    Type: AWS::EC2::VPC::Id
+    Type: String  # AWS::EC2::VPC::Id cannot be blank
     Description: >-
       The ID of the AWS Virtual Private Cloud (VPC) to which the Virtual
-      Private Network (VPN) will connect
+      Private Network (VPN) will connect. This template is for use with a VPN
+      endpoint connected directly to a VPC, not one connected through a
+      Transit Gateway. This is ignored if VpnEndpointAndOrVpcSubnetAssociation
+      is "VpcSubnetAssociationOnly".
+    Default: ""
 
   DestinationIpv4CidrBlock:
     Type: String
     Description: >-
       The range of private IPv4 addresses that VPN clients can reach, in CIDR
       notation. (This "split-tunnel" VPN routes other traffic through a
-      client's regular network connection.) Set to the VPC's address range. If
-      you are using CloudFormation in the AWS Console, reopen the VPC pop-up
-      menu, immediately above, to see the address range of the VPC you
-      specified.
-
-  TargetSubnetId:
-    Type: AWS::EC2::Subnet::Id
-    Description: >-
-      The ID of the primary subnet with which your VPN will be associated. It
-      must be in the VPC you specified, must contain at least 32 IP addresses
-      ( /27 or fewer subnet bits, indicating more addresses), and must have at
-      least 8 available addresses. See
-      https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-working-target.html#cvpn-working-target-associate
-      . If you are using CloudFormation in the AWS Console, look above to see
-      the Destination IP address range you specified. The Primary subnet
-      pop-up menu shows subnet address ranges. Choose a subnet within the
-      Destination IP address range. (If you have multiple VPCs with
-      overlapping address ranges, check separately that the Subnet ID
-      represents a subnet in the VPC you specified.)
-
-  BackupTargetSubnetId:
-    Type: String  # AWS::EC2::Subnet::Id cannot be blank
-    Description: >-
-      The ID of a backup subnet. This one must cover a different
-      availability zone. Leave blank for a VPN that costs less but cannot
-      accommodate the failure of its sole AWS availability zone.
+      client's regular network connection.) Set this to the VPC's IPv4 address
+      range, usually the one labeled "IPv4 CIDR" on the VPC details page in the
+      AWS Console.
+      This is ignored if VpnEndpointAndOrVpcSubnetAssociation is
+      "VpcSubnetAssociationOnly".
     Default: ""
 
   ClientIpv4CidrBlock:
@@ -93,13 +69,51 @@ Parameters:
     Description: >-
       The non-overlapping range of private IPv4 addresses available for VPN
       clients, in CIDR notation. It must contain between 1024 and 1 million
-      addresses (that is, between /22 and /12 subnet bits). Accept the default
-      if your AWS VPC and your home/office local-area network (LAN) address
-      ranges are in 172.16.X.X or 192.168.X.X, or they do not go all the way
-      to the end of 10.X.X.X. Change if your VPC or LAN covers all of
-      10.0.0.0/8 (10.0.0.0 to 10.255.255.255), or a final part such as
-      10.128.0.0/9 (10.128.0.0 to 10.255.255.255).
+      addresses (that is, between /22 and /12 subnet bits). Accept the default,
+      10.255.252.0/22, if your AWS VPC and your home/office local-area network
+      (LAN) address ranges are in 172.16.X.X or 192.168.X.X, or they do not go
+      all the way to the end of 10.X.X.X. Change if your VPC or LAN covers all
+      of 10.0.0.0/8 (10.0.0.0 to 10.255.255.255), or a final part such as
+      10.128.0.0/9 (10.128.0.0 to 10.255.255.255). This is ignored if
+      VpnEndpointAndOrVpcSubnetAssociation is "VpcSubnetAssociationOnly".
     Default: "10.255.252.0/22"
+
+  ServerCertificateArn:
+    Type: String
+    Description: >-
+      The TLS certificate for the VPN server. Specify the ARN of an AWS
+      Certificate Manager certificate. This is ignored if
+      VpnEndpointAndOrVpcSubnetAssociation is "VpcSubnetAssociationOnly".
+    Default: ""
+
+  Enable:
+    Type: String
+    Description: >-
+      Whether to create the association between the VPN endpoint and the VPC
+      subnet. This is ignored if VpnEndpointAndOrVpcSubnetAssociation is
+      "VpnEndpointOnly".
+      For the VPN endpoint to accept connections, an association must be
+      defined, and Enable must be set to "true", in at least one stack.
+      AWS charges for an association even when no clients are connected.
+      (Re-)creating an association takes up to 10 minutes.
+      To delete and recreate on a schedule, see
+      https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule
+    AllowedValues:
+      - "false"
+      - "true"
+    Default: "true"
+
+  TargetSubnetId:
+    Type: String  # AWS::EC2::Subnet::Id cannot be blank
+    Description: >-
+      The ID of a subnet with which the VPN endpoint will be associated. This
+      is ignored if VpnEndpointAndOrVpcSubnetAssociation is "VpnEndpointOnly".
+      The VPN endpoint and the VPC subnet must be in the same VPC.
+      This subnet must contain at least 32 IP addresses
+      ( /27 or fewer subnet bits, indicating more addresses), and must have at
+      least 8 available addresses. See
+      https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-working-target.html#cvpn-working-target-associate
+    Default: ""
 
   PlaceholderAdvancedParameters:
     Type: String
@@ -107,26 +121,24 @@ Parameters:
     AllowedValues:
       - ""
 
+  SsmParamPath:
+    Type: String
+    Description: >-
+      A string prepended to the names of the VPN client security group and VPN
+      endpoint ID parameters, if AWS Systems Manager (SSM) Parameter Store
+      parameters are referenced or set by this stack.
+    Default: "/cloudformation"
+
   ProtocolAndPort:
     Type: String
     Description: >-
-      The protocol and port that your VPN will use. UDP is faster but might be
-      blocked by intermediate networks.
+      The protocol and port that the VPN will use. UDP is faster but might be
+      blocked by intermediate networks. This is ignored if
+      VpnEndpointAndOrVpcSubnetAssociation is "VpcSubnetAssociationOnly".
     AllowedValues:
       - "udp 1194"
       - "tcp 443"
     Default: "udp 1194"
-
-  DnsServerIpv4Addr:
-    Type: String
-    Description: >-
-      The IPv4 address of a domain name (DNS) server for VPN clients to use.
-      Leave blank to rely on clients' regular DNS servers. If specified, the
-      value will usually be the start of the VPC's address range plus 2, for
-      the Amazon name server. (For example, if the VPC covers CIDR block
-      10.0.0.0/16 = 10.0.0.0 to 10.0.255.255 , then the Amazon name server is
-      at 10.0.0.2 .)
-    Default: ""
 
   CustomClientSecGrpIds:
     Type: List<String>  # List<AWS::EC2::SecurityGroup::Id> cannot be empty
@@ -134,55 +146,90 @@ Parameters:
       Leave blank to create 2 generic security groups for VPN clients.
       Reference ClientSecGrp (1) in security group ingress rules, to allow
       traffic from VPN clients (FromClientSampleSecGrp serves as an example).
-      OutAllSecGrp (2) allows all outbound traffic from VPN clients; if the
-      VPN is ever compromised, manually remove the VPN from that group to
-      block traffic from VPN clients to the VPC. If the generic groups do not
-      meet your needs, specify the IDs of 1 or more security groups to which
-      VPN clients should be assigned. Separate multiple IDs with commas (no
-      spaces). Groups must be in the VPC you specified.
+      OutAllSecGrp (2) allows all egress traffic from VPN clients; if the VPN
+      is ever compromised, manually remove the VPN from this group to block
+      traffic from VPN clients to the VPC.
+      If the generic groups do not meet your needs, specify the IDs of 1 or
+      more security groups to which VPN clients should be assigned. Separate
+      multiple IDs with commas but no spaces. The VPN endpoint and the security
+      groups must be in the same VPC.
+      This is ignored if VpnEndpointAndOrVpcSubnetAssociation is
+      "VpcSubnetAssociationOnly".
     Default: ""
 
-  LogsRetainDays:
-    Type: Number
+  DnsServerIpv4Addresses:
+    Type: List<String>
     Description: >-
-      How many days to keep the log. See retentionInDays in
-      http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutRetentionPolicy.html
-    Default: 7
+      The IPv4 addresses of domain name servers for VPN clients to use.
+      Separate multiple addresses with commas but no spaces. This is ignored if
+      VpnEndpointAndOrVpcSubnetAssociation is "VpcSubnetAssociationOnly".
+      Leave blank to rely on clients' regular DNS servers.
+      The Amazon name server is 2 addresses above the start of a VPC's address
+      range. For example, if the VPC covers CIDR block 10.0.0.0/16 = 10.0.0.0
+      to 10.0.255.255, then the Amazon name server is at 10.0.0.2 .
+    Default: ""
 
-  LogGroupPath:
+  ClientRootCertificateChainArn:
     Type: String
     Description: >-
-      The path to prepend when naming the log group
-    Default: "/aws/vpc/clientvpn"
+      The TLS certificate chain for VPN client certificates. Specify the ARN
+      of an AWS Certificate Manager certificate.  This is ignored if
+      VpnEndpointAndOrVpcSubnetAssociation is "VpcSubnetAssociationOnly".
+      Leave blank to use the server certificate, in which case clients with any
+      certificate signed by the same certificate authority (CA) can connect.
+    Default: ""
+
+  RetentionInDays:
+    Type: Number
+    Description: >-
+      How many days to keep VPN connection log entries. This is ignored if
+      VpnEndpointAndOrVpcSubnetAssociation is "VpcSubnetAssociationOnly".
+      See
+      http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutRetentionPolicy.html
+    Default: 7
 
   CloudWatchLogsKmsKey:
     Type: String
     Description: >-
       If this is blank, default non-KMS CloudWatch Logs encryption applies. To
-      use a KMS key, which must be a custom key, specify "ACCOUNT:key/KEY_ID".
-      Whether the custom key is a single-region key, a multi-region key
-      primary, or a multi-region key replica, it must be in the same region
-      where you are creating this stack. Even if the custom key is in the same
-      AWS account as this stack, you must update the key policy to allow usage
-      by CloudWatch Logs. See
+      use a KMS key, which must be a custom key, specify ACCOUNT:key/KEY_ID.
+      This is ignored if VpnEndpointAndOrVpcSubnetAssociation is
+      "VpcSubnetAssociationOnly".
+      The single-region key, multi-region key primary, or multi-region key
+      replica must be in the same region as this stack.
+      For a StackSet, the key must be multi-region ("mrk-" prefix in KEY_ID).
+      Even if the custom key is in the same AWS account as this stack, you must
+      update the key policy to allow usage by CloudWatch Logs. See
       https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/encrypt-log-data-kms.html#cmk-permissions
-      . For a StackSet, the custom key must be multi-region ("mrk-" prefix in
-      the KEY_ID), and a replica (or the primary key itself) must exist in
-      every target region.
     Default: ""
 
-  SsmParamPath:
+  LogGroupPath:
     Type: String
     Description: >-
-      The path to prepend when naming the VPN client security group parameter
-      (applies only when generic security groups are in use) and the endpoint
-      ID parameter (always provided).
-      In CloudFormation templates, use
-      {{resolve:ssm:<SsmParamPath>/<NameOfThisStack>/ClientSecGrpId}}
-      and
-      {{resolve:ssm:<SsmParamPath>/<NameOfThisStack>/EndpointId}}
-      to reference these AWS Systems Manager (SSM) Parameter Store parameters.
-    Default: "/cloudformation"
+      The path to prepend to the connection log group name. This is ignored if
+      VpnEndpointAndOrVpcSubnetAssociation is "VpcSubnetAssociationOnly".
+    Default: "/aws/vpc/clientvpn"
+
+  ExistingEndpointId:
+    Type: String
+    Description: >-
+      The ID of an existing VPN endpoint. This is ignored unless
+      VpnEndpointAndOrVpcSubnetAssociation is "VpcSubnetAssociationOnly".
+      Leave blank if you defined your VPN endpoint in a separate stack created
+      from the same template.
+    Default: ""
+
+  ExistingEndpointStackName:
+    Type: String
+    Description: >-
+      The name of a separate stack, created with the same template, that
+      defines an existing VPN endpoint. This is ignored unless
+      VpnEndpointAndOrVpcSubnetAssociation is "VpcSubnetAssociationOnly" and
+      ExistingEndpointId is blank. SsmParamPath must be set to the same value
+      in both stacks. This stack retrieves the VPN endpoint ID from AWS Systems
+      Manager (SSM) Parameter Store, using
+      {{resolve:ssm:<SsmParamPath>/<ExistingEndpointStackName>/EndpointId}}
+    Default: "CVpn"
 
 Metadata:
 
@@ -193,139 +240,187 @@ Metadata:
         Parameters:
           - PlaceholderHelp
           - PlaceholderSuggestedStackName
+          - PlaceholderSuggestedStackNamesVpcSubnetAssociationOnly
           - PlaceholderSuggestedStackPolicyBody
       - Label:
-          default: Essential
+          default: Required
         Parameters:
-          - Enable
-          - ServerCertificateArn
+          - VpnEndpointAndOrVpcSubnetAssociation
+      - Label:
+          default: Required for VPN endpoint
+        Parameters:
           - VpcId
           - DestinationIpv4CidrBlock
-          - TargetSubnetId
           - ClientIpv4CidrBlock
+          - ServerCertificateArn
+      - Label:
+          default: Required for VPC subnet association
+        Parameters:
+          - Enable
+          - TargetSubnetId
       - Label:
           default: Advanced Options
         Parameters:
           - PlaceholderAdvancedParameters
       - Label:
-          default: Virtual Private Network
-        Parameters:
-          - ClientRootCertificateChainArn
-          - BackupTargetSubnetId
-          - ProtocolAndPort
-          - DnsServerIpv4Addr
-      - Label:
-          default: Security groups
-        Parameters:
-          - CustomClientSecGrpIds
-      - Label:
-          default: Connection log (CloudWatch)
-        Parameters:
-          - LogsRetainDays
-          - LogGroupPath
-          - CloudWatchLogsKmsKey
-      - Label:
-          default: Systems Manager (SSM) Parameter Store
+          default: VPN endpoint and VPC subnet association
         Parameters:
           - SsmParamPath
-
+      - Label:
+          default: VPN endpoint
+        Parameters:
+          - ProtocolAndPort
+          - CustomClientSecGrpIds
+          - DnsServerIpv4Addresses
+          - ClientRootCertificateChainArn
+      - Label:
+          default: VPN endpoint connection log (CloudWatch)
+        Parameters:
+          - RetentionInDays
+          - CloudWatchLogsKmsKey
+          - LogGroupPath
+      - Label:
+          default: VPC subnet association
+        Parameters:
+          - ExistingEndpointId
+          - ExistingEndpointStackName
     ParameterLabels:
       PlaceholderHelp:
         default: For help with this stack, see
       PlaceholderSuggestedStackName:
         default: Suggested stack name
+      PlaceholderSuggestedStackNamesVpcSubnetAssociationOnly:
+        default: Suggested stack names - VPC subnet association only
       PlaceholderSuggestedStackPolicyBody:
         default: Copy suggested stack policy from
-      Enable:
-        default: Enabled?
       VpcId:
-        default: VPC
+        default: VPC ID
       DestinationIpv4CidrBlock:
         default: Destination IP address range
       ClientIpv4CidrBlock:
         default: Client IP address range
-      TargetSubnetId:
-        default: Primary subnet
-      BackupTargetSubnetId:
-        default: Backup subnet (optional)
       ServerCertificateArn:
-        default: Server certificate
+        default: TLS certificate ARN for VPN server
+      Enable:
+        default: Enabled?
+      TargetSubnetId:
+        default: Subnet ID
       PlaceholderAdvancedParameters:
         default: Do not change parameters below, unless necessary!
-      ClientRootCertificateChainArn:
-        default: Client certificate (optional)
+      SsmParamPath:
+        default: Path for Parameter Store parameters
       ProtocolAndPort:
         default: Network protocol and port
-      DnsServerIpv4Addr:
-        default: DNS server (optional)
       CustomClientSecGrpIds:
-        default: Custom security group(s) for VPN clients (optional)
-      LogsRetainDays:
-        default: Retention period
-      LogGroupPath:
-        default: Path
+        default: Custom security group(s) for VPN clients
+      DnsServerIpv4Addresses:
+        default: DNS servers
+      ClientRootCertificateChainArn:
+        default: TLS certificate ARN for VPN clients
+      RetentionInDays:
+        default: Retention period (days)
       CloudWatchLogsKmsKey:
-        default: KMS encryption key (optional)
-      SsmParamPath:
-        default: Path of VPN client security group and endpoint ID parameters
+        default: KMS encryption key
+      LogGroupPath:
+        default: Path for log group
+      ExistingEndpointId:
+        default: Existing Client VPN endpoint ID
+      ExistingEndpointStackName:
+        default: Name of existing Client VPN endpoint stack
 
-Rules:
+Rules:  # Needed only for conditional parameters with Default: ""
 
-  TargetSubnetInVpc:
+  VpcIdRequired:
     Assertions:
       - AssertDescription: >-
-          TargetSubnetId subnet must be in VpcId VPC
-        Assert: !Equals
-          - !Ref VpcId
-          - !ValueOf [ TargetSubnetId, VpcId ]
+          A VPC ID for the VPN must be specified unless the stack defines a VPC
+          subnet association only
+        Assert: !Or
+          - !Equals
+            - !Ref VpnEndpointAndOrVpcSubnetAssociation
+            - VpcSubnetAssociationOnly
+          - !Not [ !Equals [ !Ref VpcId, "" ] ]
 
-  TargetSubnetsDiffer:
-    RuleCondition: !Not [ !Equals [ !Ref BackupTargetSubnetId, "" ] ]
+  DestinationIpv4CidrBlockRequired:
     Assertions:
       - AssertDescription: >-
-          BackupTargetSubnetId must be different from TargetSubnetId
-        Assert:
-          !Not [ !Equals [ !Ref TargetSubnetId, !Ref BackupTargetSubnetId ] ]
+          A destination IPv4 CIDR block for the VPN must be specified unless
+          the stack defines a VPC subnet association only
+        Assert: !Or
+          - !Equals
+            - !Ref VpnEndpointAndOrVpcSubnetAssociation
+            - VpcSubnetAssociationOnly
+          - !Not [ !Equals [ !Ref DestinationIpv4CidrBlock, "" ] ]
 
-  # As long as BackupTargetSubnetId and CustomClientSecGrpIds are optional
-  # (String and List<String> instead of AWS-specific parameter types, which
-  # work with Fn::ValueOf and Fn::ValueOfAll ), it is not possible to pre-check
-  # that the backup subnet and custom security groups are in the VpcId VPC, or
-  # that the backup subnet is in different availability zone.
+  ClientIpv4CidrBlockRequired:
+    Assertions:
+      - AssertDescription: >-
+          A IPv4 CIDR block for VPN clients must be specified unless the stack
+          defines a VPC subnet association only
+        Assert: !Or
+          - !Equals
+            - !Ref VpnEndpointAndOrVpcSubnetAssociation
+            - VpcSubnetAssociationOnly
+          - !Not [ !Equals [ !Ref ClientIpv4CidrBlock, "" ] ]
+
+  ServerCertificateArnRequired:
+    Assertions:
+      - AssertDescription: >-
+          A VPN server certificate must be specified unless the stack defines a
+          VPC subnet association only
+        Assert: !Or
+          - !Equals
+            - !Ref VpnEndpointAndOrVpcSubnetAssociation
+            - VpcSubnetAssociationOnly
+          - !Not [ !Equals [ !Ref ServerCertificateArn, "" ] ]
+
+  TargetSubnetIdRequired:
+    Assertions:
+      - AssertDescription: >-
+          A target VPC subnet ID must be specified unless the stack defines a
+          VPN endpoint only
+        Assert: !Or
+          - !Equals
+            - !Ref VpnEndpointAndOrVpcSubnetAssociation
+            - VpnEndpointOnly
+          - !Not [ !Equals [ !Ref TargetSubnetId, "" ] ]
 
 Conditions:
 
-  EnableTrue:
-    !Equals [ !Ref Enable, "true" ]
+  CreateEndpoint: !Not
+    - !Equals
+      - !Ref VpnEndpointAndOrVpcSubnetAssociation
+      - VpcSubnetAssociationOnly
 
-  ClientRootCertificateChainArnBlankUseServer:
+  CreateSecGrps: !And
+    - !Condition CreateEndpoint
+    - !Equals [ !Join [ "", !Ref CustomClientSecGrpIds ], "" ]
+
+  CreateTargetNetAssoc: !And
+    - !Equals [ !Ref Enable, "true" ]
+    - !Not
+      - !Equals [ !Ref VpnEndpointAndOrVpcSubnetAssociation, VpnEndpointOnly ]
+
+  ExistingEndpointIdBlank: !Equals [ !Ref ExistingEndpointId, "" ]
+
+  ClientRootCertificateChainArnBlank:
     !Equals [ !Ref ClientRootCertificateChainArn, "" ]
-
-  BackupTargetSubnetIdBlank: !Equals [ !Ref BackupTargetSubnetId, "" ]
-
-  EnableTrueAndBackupTargetSubnetIdNotBlank:
-    Fn::And:
-      - Condition: EnableTrue
-      - !Not [ Condition: BackupTargetSubnetIdBlank ]
 
   CloudWatchLogsKmsKeyBlank: !Equals [ !Ref CloudWatchLogsKmsKey, "" ]
 
-  DnsServerIpv4AddrBlank:
-    !Equals [ !Ref DnsServerIpv4Addr, "" ]
-
-  CustomClientSecGrpIdsBlankCreateGeneric:
-    !Equals [ !Select [ 0, !Ref CustomClientSecGrpIds ], "" ]
+  DnsServerIpv4AddressesBlank:
+    !Equals [ !Join [ "", !Ref DnsServerIpv4Addresses ], "" ]
 
 Resources:
 
   OutAllSecGrp:
     Type: AWS::EC2::SecurityGroup
-    Condition: CustomClientSecGrpIdsBlankCreateGeneric
+    Condition: CreateSecGrps
     Properties:
       GroupDescription: >-
-        All out (Separable: In case a group member is compromised, remove the
-        member from this group to block outbound traffic; be sure no other
-        groups allow any outbound traffic.)
+        All egress. If VPN is accessed by an unauthorized client, detach this
+        security group from VPN endpoint to block new requests from all VPN
+        clients.
       VpcId: !Ref VpcId
       SecurityGroupEgress:
         - IpProtocol: "-1"  # All
@@ -336,46 +431,59 @@ Resources:
 
   ClientSecGrp:
     Type: AWS::EC2::SecurityGroup
-    Condition: CustomClientSecGrpIdsBlankCreateGeneric
+    Condition: CreateSecGrps
     Properties:
-      GroupDescription:
-        Fn::Sub: >-
-          ${AWS::StackName} client (Reference in security group ingress rules,
-          to allow traffic from VPN clients. In CloudFormation templates, use
-          {{!resolve:ssm:${SsmParamPath}/${AWS::StackName}/ClientSecGrpId}}
-          , without the exclamation mark.)
+      GroupDescription: !Sub >-
+        ${AWS::StackName} client. Reference in security group ingress rules to
+        accept requests from VPN clients.
       VpcId: !Ref VpcId
       SecurityGroupEgress:
         - Description: >-
-            Placeholder (replaces the default rule, which would allow all
-            outbound traffic; use other security groups to allow specific
-            outbound traffic)
+            Placeholder to replace default egress rule. Use a separate security
+            group for outbound traffic.
           IpProtocol: "-1"  # All
           CidrIp: 127.0.0.1/32  # Loopback
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-ClientSecGrp"
 
+  ClientSecGrpIdParam:
+    Type: AWS::SSM::Parameter
+    Condition: CreateSecGrps
+    Properties:
+      Name: !Sub "${SsmParamPath}/${AWS::StackName}/ClientSecGrpId"
+      Description: !Sub >-
+        ${AWS::StackName} client security group ID. Reference value in security
+        group ingress rules to accept requests from VPN clients.
+        CloudFormation:
+        {{!resolve:ssm:${SsmParamPath}/${AWS::StackName}/ClientSecGrpId}}
+        without exclamation mark.
+        Terraform:
+        data "aws_ssm_parameter" "vpn_client_security_group_id" {
+          name = "${SsmParamPath}/${AWS::StackName}/ClientSecGrpId"
+        }
+        .
+        To avoid a dependency, pre-define security groups and set
+        CustomClientSecGrpIds before before creating VPN endpoint.
+      DataType: text
+      Type: String
+      Value: !GetAtt ClientSecGrp.GroupId
+
   FromClientSampleSecGrp:
     Type: AWS::EC2::SecurityGroup
-    Condition: CustomClientSecGrpIdsBlankCreateGeneric
+    Condition: CreateSecGrps
     Properties:
-      GroupDescription:
-        Fn::Sub: >-
-          From ${AWS::StackName} clients (Demonstrates an ingress rule that
-          allows traffic from VPN clients.)
+      GroupDescription: !Sub >-
+        Server for ${AWS::StackName} clients
       VpcId: !Ref VpcId
       SecurityGroupEgress:
         - Description: >-
-            Placeholder (Replaces the default rule, which would allow all
-            outbound traffic; use other security groups to allow specific
-            outbound traffic.)
+            Placeholder to replace default egress rule. Use a separate security
+            group for outbound traffic.
           IpProtocol: "-1"  # All
           CidrIp: 127.0.0.1/32  # Loopback
       SecurityGroupIngress:
-        - Description:
-            Fn::Sub: >-
-              From ${AWS::StackName} clients
+        - Description: !Sub "${AWS::StackName} client"
           IpProtocol: tcp
           FromPort: 22
           ToPort: 22
@@ -384,48 +492,28 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-FromClientSampleSecGrp"
 
-  ClientSecGrpIdParam:
-    Type: AWS::SSM::Parameter
-    Condition: CustomClientSecGrpIdsBlankCreateGeneric
-    Properties:
-      Name: !Sub "${SsmParamPath}/${AWS::StackName}/ClientSecGrpId"
-      Description:
-        Fn::Sub: >-
-          ${AWS::StackName} client security group ID.
-          In CloudFormation templates, use
-          {{!resolve:ssm:${SsmParamPath}/${AWS::StackName}/ClientSecGrpId}}
-          , without the exclamation mark.
-          Reference in security group ingress rules, to allow traffic from VPN
-          clients.
-          To avoid a dependency, pre-define security groups and set
-          CustomClientSecGrpIds .
-      DataType: text
-      Type: String
-      Value: !GetAtt ClientSecGrp.GroupId
-
   LogGroup:
     Type: AWS::Logs::LogGroup
-
-    # Intent: Change Enable to false to keep old stack until logs expire.
-    DeletionPolicy: Delete
-
+    Condition: CreateEndpoint
+    DeletionPolicy: Delete  # Set Enable false to keep stack until logs expire
     Properties:
       LogGroupName: !Sub "${LogGroupPath}/${AWS::StackName}"
-      RetentionInDays: !Ref LogsRetainDays
-      KmsKeyId:
-        Fn::If:
-          - CloudWatchLogsKmsKeyBlank
-          - !Ref AWS::NoValue
-          - !Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${CloudWatchLogsKmsKey}"
+      RetentionInDays: !Ref RetentionInDays
+      KmsKeyId: !If
+        - CloudWatchLogsKmsKeyBlank
+        - !Ref AWS::NoValue
+        - !Sub "arn:${AWS::Partition}:kms:${AWS::Region}:${CloudWatchLogsKmsKey}"
 
   LogStream:
     Type: AWS::Logs::LogStream
+    Condition: CreateEndpoint
     Properties:
       LogGroupName: !Ref LogGroup
       LogStreamName: connect
 
   Endpoint:
     Type: AWS::EC2::ClientVpnEndpoint
+    Condition: CreateEndpoint
     Properties:
       Description: !Sub "${AWS::StackName}"
       SelfServicePortal: disabled  # Not available with mutual TLS auth.
@@ -437,87 +525,83 @@ Resources:
       AuthenticationOptions:
         - Type: certificate-authentication
           MutualAuthentication:
-            ClientRootCertificateChainArn:
-              Fn::If:
-                - ClientRootCertificateChainArnBlankUseServer
-                - !Ref ServerCertificateArn
-                - !Ref ClientRootCertificateChainArn
+            ClientRootCertificateChainArn: !If
+              - ClientRootCertificateChainArnBlank
+              - !Ref ServerCertificateArn
+              - !Ref ClientRootCertificateChainArn
       TransportProtocol: !Select [ 0, !Split [ " ", !Ref ProtocolAndPort ] ]
       VpnPort: !Select [ 1, !Split [ " ", !Ref ProtocolAndPort ] ]
       ClientCidrBlock: !Ref ClientIpv4CidrBlock
       VpcId: !Ref VpcId
-      DnsServers:
-        Fn::If:
-          - DnsServerIpv4AddrBlank
-          - !Ref AWS::NoValue
-          -
-            - !Ref DnsServerIpv4Addr
-      SecurityGroupIds:
-        Fn::If:
-          - CustomClientSecGrpIdsBlankCreateGeneric
-          -
-            - !Ref ClientSecGrp
-            - !Ref OutAllSecGrp
-          - !Ref CustomClientSecGrpIds
+      DnsServers: !If
+        - DnsServerIpv4AddressesBlank
+        - !Ref AWS::NoValue
+        - !Ref DnsServerIpv4Addresses
+      SecurityGroupIds: !If
+        - CreateSecGrps
+        -
+          - !Ref ClientSecGrp
+          - !Ref OutAllSecGrp
+        - !Ref CustomClientSecGrpIds
       SplitTunnel: true
       TagSpecifications:
         - ResourceType: client-vpn-endpoint
           Tags:
             - Key: Name
               Value: !Ref AWS::StackName
-              # As of 2025-10, CloudFormation does not set default tags such as
+              # As of 2026-05, CloudFormation does not set default tags such as
               # aws:cloudformation:stack-name for this resource type.
+    Metadata:
+      cfn-lint: { config: { ignore_checks: [ W1030 ] } }
+      # VpcIdRequired rule ensures VpcId is not blank if it's needed. Suppress
+      # {'Ref': 'VpcId'} is not a 'AWS::EC2::VPC.Id' with pattern
+      # '^vpc-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved
 
   EndpointIdParam:
     Type: AWS::SSM::Parameter
+    Condition: CreateEndpoint
     Properties:
       Name: !Sub "${SsmParamPath}/${AWS::StackName}/EndpointId"
-      Description:
-        Fn::Sub: >-
-          ${AWS::StackName} endpoint ID.
-          In CloudFormation templates, use
-          {{!resolve:ssm:${SsmParamPath}/${AWS::StackName}/EndpointId}}
-          , without the exclamation mark.
-          The self-service portal is not available, due to use of mutual TLS
-          authentication. Download the VPN client configuration file using the
-          AWS Console (VPC service) or the command-line interface:
-          aws ec2 export-client-vpn-client-configuration
-            --output text
-            --client-vpn-endpoint-id 'cvpn-endpoint-00123456789abcdef'
-          .
-          To avoid a hard dependency, find the endpoint by its
-          "Name"
-          tag instead.
+      Description: !Sub >-
+        ${AWS::StackName} endpoint ID.
+        AWS CLI:
+        aws ec2 export-client-vpn-client-configuration --output text --client-vpn-endpoint-id 'cvpn-endpoint-00123456789abcdef'
+        .
+        CloudFormation:
+        {{!resolve:ssm:${SsmParamPath}/${AWS::StackName}/EndpointId}}
+        without exclamation mark.
+        Terraform:
+        data "aws_ssm_parameter" "client_vpn_endpoint_id" {
+          name = "${SsmParamPath}/${AWS::StackName}/EndpointId"
+        }
+        .
+        To avoid a hard dependency, find by client VPN endpoint by tag: Name =
+        "${AWS::StackName}".
       DataType: text
       Type: String
       Value: !Ref Endpoint
 
   AuthRule:
     Type: AWS::EC2::ClientVpnAuthorizationRule
+    Condition: CreateEndpoint
     Properties:
       ClientVpnEndpointId: !Ref Endpoint
-      Description:
-        Fn::Sub: >-
-          ${VpcId}
+      Description: !Sub "${VpcId}"
       AuthorizeAllGroups: true
       TargetNetworkCidr: !Ref DestinationIpv4CidrBlock
 
   TargetNetAssoc:
     Type: AWS::EC2::ClientVpnTargetNetworkAssociation
-    Condition: EnableTrue
+    Condition: CreateTargetNetAssoc
     Properties:
-      ClientVpnEndpointId: !Ref Endpoint
+      ClientVpnEndpointId: !If
+        - CreateEndpoint
+        - !Ref Endpoint
+        - !If
+          - ExistingEndpointIdBlank
+          - !Sub "{{resolve:ssm:${SsmParamPath}/${ExistingEndpointStackName}/EndpointId}}"
+          - !Ref ExistingEndpointId
       SubnetId: !Ref TargetSubnetId
-      # A default AWS::EC2::ClientVpnRoute from this subnet to
-      # ClientVpnAuthRule.TargetNetworkCidr = DestinationIpv4CidrBlock
-      # is automatically created upon association
-
-  BackupTargetNetAssoc:
-    Type: AWS::EC2::ClientVpnTargetNetworkAssociation
-    Condition: EnableTrueAndBackupTargetSubnetIdNotBlank
-    Properties:
-      ClientVpnEndpointId: !Ref Endpoint
-      SubnetId: !Ref BackupTargetSubnetId
       # A default AWS::EC2::ClientVpnRoute from this subnet to
       # ClientVpnAuthRule.TargetNetworkCidr = DestinationIpv4CidrBlock
       # is automatically created upon association
