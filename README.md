@@ -58,6 +58,13 @@ exposure to the public Internet.
 
 </details>
 
+>&#128274; Software supply chain security is on everyone's mind. These VPN
+templates do not contain executable code. I have made GitHub releases immutable
+as of `v4.1.2` (2026-05-05). You will use third-party software from OpenVPN or
+AWS to generate certificates and connect to the VPN; I provide links to release
+notes for security awareness. The VPN grants access to the private AWS network
+you specify, when a client presents the certificate you specify.
+
 ## Quick Installation
 
 > Before you begin, take a deep breath! Certificate setup is shorter than it
@@ -72,6 +79,12 @@ authority (and Terraform state, if you are using Terraform).
 
  1. Create the VPN certificate(s) by following AWS's
     [mutual authentication steps](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-auth-mutual-enable.html).
+
+    - Scrutinize the
+      [github.com/OpenVPN/easy-rsa](https://github.com/OpenVPN/easy-rsa/releases)
+      release that you will use to create certificates for the VPN.
+      As of May&nbsp;5,&nbsp;2026, OpenVPN has not enabled immutable releases
+      for this repository.
 
     - Copy the _individual_ Linux/macOS commands and execute them verbatim.
 
@@ -105,7 +118,7 @@ authority (and Terraform state, if you are using Terraform).
 
       Create a stack "With new resources (standard)" from a locally-saved copy
       of
-      [cloudformation/10-minute-aws-client-vpn.yaml](/cloudformation/10-minute-aws-client-vpn.yaml?raw=true)
+      [cloudformation/10-minute-aws-client-vpn.yaml](/../../blob/v4.1.2/cloudformation/10-minute-aws-client-vpn.yaml?raw=true)
       [right-click to save as...].
 
       - Name the stack `CVpn`&nbsp;.
@@ -115,7 +128,7 @@ authority (and Terraform state, if you are using Terraform).
 
       - Under "Additional settings" &rarr; "Stack policy - optional", you can
         "Upload a file" and select a locally-saved copy of
-        [cloudformation/10-minute-aws-client-vpn-policy.json](/cloudformation/10-minute-aws-client-vpn-policy.json?raw=true)
+        [cloudformation/10-minute-aws-client-vpn-policy.json](/../../blob/v4.1.2/cloudformation/10-minute-aws-client-vpn-policy.json?raw=true)
         [right-click to save as...]. The stack policy prevents replacement or
         deletion of certain resources during stack updates, producing an error
         if you attempt
@@ -133,8 +146,9 @@ authority (and Terraform state, if you are using Terraform).
 
       ```terraform
       module "cvpn" {
-        source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=v4.1.1"
-          # Reference a specific version from github.com/sqlxpert/10-minute-aws-client-vpn/releases
+        source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=v4.1.2"
+        # Reference a specific version from github.com/sqlxpert/10-minute-aws-client-vpn/releases
+        # Check that the release is immutable!
 
         cvpn_params = {
           TargetSubnetId = "subnet-10123456789abcdef"
@@ -161,7 +175,7 @@ authority (and Terraform state, if you are using Terraform).
       parameter.
 
  4. Follow
-    [Step&nbsp;7 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config).
+    [Step&nbsp;8 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config).
 
     - Find your VPN in the list of
       [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
@@ -184,9 +198,21 @@ authority (and Terraform state, if you are using Terraform).
       three contain copies of your key.
 
  5. Download either the latest
-    [OpenVPN](https://openvpn.net) client (Resources &rarr; Connect Client
-    &rarr; Download) or
+    [OpenVPN](https://openvpn.net)
+    client (Resources &rarr; Connect Client &rarr; Download) or
     [AWS client](https://aws.amazon.com/vpn/client-vpn-download/).
+
+    - Check
+      [OpenVPN Connect release notes](https://openvpn.net/connect-docs/release-notes.html)
+      or
+      AWS client release notes
+      ([Linux](https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-linux-release-notes.html)
+      |
+      [macOS](https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-macos-release-notes.html)
+      |
+      [Windows](https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-windows-release-notes.html)),
+      plus industry security bulletins relevant to the software you are
+      installing.
 
  6. Import your edited configuration file to the client.
 
@@ -225,14 +251,14 @@ authority (and Terraform state, if you are using Terraform).
 
     - Create a stack "With new resources (standard)" from a locally-saved copy
       of
-      [cloudformation/10-minute-aws-client-vpn-prereq.yaml](/cloudformation/10-minute-aws-client-vpn-prereq.yaml?raw=true)
+      [cloudformation/10-minute-aws-client-vpn-prereq.yaml](/../../blob/v4.1.2/cloudformation/10-minute-aws-client-vpn-prereq.yaml?raw=true)
       [right-click to save as...].
 
     - Name this stack `CVpnPrereq`&nbsp;.
 
     - Under "Additional settings" &rarr; "Stack policy - optional", you can
       "Upload a file" and select a locally-saved copy of
-      [10-minute-aws-client-vpn-prereq-policy.json](/10-minute-aws-client-vpn-prereq-policy.json?raw=true)
+      [cloudformation/10-minute-aws-client-vpn-prereq-policy.json](/../../blob/v4.1.2/cloudformation/10-minute-aws-client-vpn-prereq-policy.json?raw=true)
       [right-click to save as...]. The stack policy prevents inadvertent
       replacement or deletion of the deployment role during stack updates,
       but it cannot prevent deletion of the entire `CVpnPrereq` stack.
