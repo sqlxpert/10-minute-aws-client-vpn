@@ -24,7 +24,7 @@ data "aws_vpc" "cvpn" {
 
 
 data "aws_ssm_parameter" "existing_cvpn_endpoint_id" {
-  count = (local.reference_endpoint && local.reference_endpoint_stack) ? 1 : 0
+  count = local.reference_endpoint_stack ? 1 : 0
 
   region = local.region
   name = join("/", [
@@ -55,7 +55,7 @@ data "aws_ec2_client_vpn_endpoint" "existing_cvpn" {
 
 
 data "aws_security_groups" "cvpn_custom_client" {
-  count = min(length(var.cvpn_params["CustomClientSecGrpIds"]), 1)
+  count = min(local.custom_client_security_group_count, 1)
 
   region = local.region
   filter {
@@ -64,7 +64,14 @@ data "aws_security_groups" "cvpn_custom_client" {
   }
   filter {
     name   = "group-id"
-    values = toset(var.cvpn_params["CustomClientSecGrpIds"])
+    values = local.custom_client_security_group_ids_set
+  }
+
+  lifecycle {
+    postcondition {
+      condition     = (local.custom_client_security_group_count == length(self))
+      error_message = "One or more custom client security group IDs were not found in the Client VPN endpoint's VPC, ${data.aws_vpc.cvpn.id} ."
+    }
   }
 }
 
@@ -118,9 +125,6 @@ data "aws_kms_key" "cvpn_cloudwatch_logs" {
 
 
 
-# reference_endpoint       = ("VpcSubnetAssociationOnly" == local.scope)
-
-# reference_endpoint_stack = (var.cvpn_params["ExistingEndpointId"] == "")
 locals {
   cvpn_params = merge(
 
@@ -169,6 +173,10 @@ locals {
       DnsServerIpv4Addresses = ""
     },
 
+    local.reference_endpoint_stack ? {
+      ExistingEndpointStackName = local.cvpn_cloudformation_stack_name
+    } : {},
+
     local.create_target_net_assoc ? {
       Enable = tostring(false)
       # Do not associate the virtual private network (VPN) with the virtual
@@ -184,12 +192,9 @@ locals {
 
 
 resource "aws_cloudformation_stack" "cvpn_prereq" {
-  name = join("", [
-    "CVpn",
-    local.reference_endpoint ? "Subnet" : "",
-    "Prereq",
-    var.cvpn_stack_name_suffix
-  ])
+  count = local.reference_endpoint_stack ? 0 : 1
+
+  name          = local.cvpn_prereq_cloudformation_stack_name
   template_body = file("${local.cloudformation_path}/10-minute-aws-client-vpn-prereq.yaml")
 
   region = local.region
@@ -200,20 +205,26 @@ resource "aws_cloudformation_stack" "cvpn_prereq" {
   tags = local.cvpn_tags
 }
 
+data "aws_cloudformation_stack" "cvpn_prereq" {
+  count = local.reference_endpoint_stack ? 1 : 0
+
+  name = local.cvpn_prereq_cloudformation_stack_name
+}
+
 data "aws_iam_role" "cvpn_deploy" {
   for_each = toset(["DeploymentRoleName", "OperationRoleName"])
 
-  name = aws_cloudformation_stack.cvpn_prereq.outputs[each.key]
+  name = (
+    local.create_endpoint
+    ? aws_cloudformation_stack.cvpn_prereq[0]
+    : data.aws_cloudformation_stack.cvpn_prereq[0]
+  ).outputs[each.key]
 }
 
 
 
 resource "aws_cloudformation_stack" "cvpn" {
-  name = join("", [
-    "CVpn",
-    local.reference_endpoint ? "Subnet" : "",
-    var.cvpn_stack_name_suffix
-  ])
+  name          = local.cvpn_cloudformation_stack_name
   template_body = file("${local.cloudformation_path}/10-minute-aws-client-vpn.yaml")
 
   region = local.region

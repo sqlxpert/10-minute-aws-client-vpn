@@ -17,11 +17,7 @@
 # dependency-free.
 
 data "aws_ssm_parameter" "cvpn_client_sec_grp_id" {
-  count = (
-    local.create_endpoint &&
-    (try(aws_cloudformation_stack.cvpn.parameters["CustomClientSecGrpIds"], "") == "")
-    # CustomClientSecGrpIds is a string in HCL, not a list; see main.tf
-  ) ? 1 : 0
+  count = min(custom_client_security_group_count, 1)
 
   region = local.region
   name = join("/", [
@@ -32,21 +28,14 @@ data "aws_ssm_parameter" "cvpn_client_sec_grp_id" {
 }
 
 data "aws_security_group" "cvpn_client" {
-  count = (
-    local.create_endpoint &&
-    (try(aws_cloudformation_stack.cvpn.parameters["CustomClientSecGrpIds"], "") == "")
-    # CustomClientSecGrpIds is a string in HCL, not a list; see main.tf
-  ) ? 1 : 0
+  count = min(custom_client_security_group_count, 1)
 
   region = local.region
   id     = data.aws_ssm_parameter.cvpn_client_sec_grp_id[0].insecure_value
 }
 
 output "cvpn_client_sec_grp_id" {
-  value = try(
-    data.aws_security_group.cvpn_client[0].id,
-    null
-  )
+  value = try(data.aws_security_group.cvpn_client[0].id, null)
 
   description = "ID of the generic VPN client security group. Defined if no custom security groups (CustomClientSecGrpIds) were supplied and VpnEndpointAndOrVpcSubnetAssociation is not VpcSubnetAssociationOnly."
 }

@@ -32,9 +32,29 @@ locals {
     var.cvpn_tags,
   )
 
-  cvpn_scope               = var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]
-  create_endpoint          = ("VpcSubnetAssociationOnly" != local.cvpn_scope)
-  reference_endpoint       = ("VpcSubnetAssociationOnly" == local.cvpn_scope)
-  reference_endpoint_stack = (var.cvpn_params["ExistingEndpointId"] == "")
-  create_target_net_assoc  = ("VpnEndpointOnly" != local.cvpn_scope)
+  cvpn_scope              = var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]
+  create_target_net_assoc = ("VpnEndpointOnly" != local.cvpn_scope)
+  create_endpoint         = ("VpcSubnetAssociationOnly" != local.cvpn_scope)
+  reference_endpoint      = ("VpcSubnetAssociationOnly" == local.cvpn_scope)
+  reference_endpoint_stack = (
+    local.reference_endpoint && (var.cvpn_params["ExistingEndpointId"] == "")
+  )
+
+  stack_name_base  = "CVpn${var.cvpn_stack_name_suffix}"
+  subnet_id_number = trimprefix(var.cvpn_params["TargetSubnetId"], "subnet-")
+
+  cvpn_prereq_cloudformation_stack_name = "${local.stack_name_base}Prereq"
+  cvpn_cloudformation_stack_name = join("", [
+    local.stack_name_base,
+    local.reference_endpoint ? "Subnet${local.subnet_id_number}" : ""
+  ])
+
+  custom_client_security_group_ids_set = toset(
+    local.create_endpoint
+    ? var.cvpn_params["CustomClientSecGrpIds"]
+    : []
+  )
+  custom_client_security_group_count = length(
+    local.custom_client_security_group_ids_set
+  )
 }
