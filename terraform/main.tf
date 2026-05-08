@@ -46,7 +46,7 @@ data "aws_ec2_client_vpn_endpoint" "existing_cvpn" {
 
   lifecycle {
     postcondition {
-      condition     = (data.aws_vpc.cvpn.vpc_id == self.vpc_id)
+      condition     = (data.aws_vpc.cvpn.id == self.vpc_id)
       error_message = "VPC subnet and VPN endpoint must be in same VPC."
     }
   }
@@ -162,7 +162,8 @@ locals {
         ""
       )
     }
-    : {
+    : { # !local.create_endpoint
+
       # Need strings, empty in this case, for CloudFormation; see above.
       CustomClientSecGrpIds  = ""
       DnsServerIpv4Addresses = ""
@@ -183,7 +184,12 @@ locals {
 
 
 resource "aws_cloudformation_stack" "cvpn_prereq" {
-  name          = "CVpnPrereq${var.cvpn_stack_name_suffix}"
+  name = join("", [
+    "CVpn",
+    local.reference_endpoint ? "Subnet" : "",
+    "Prereq",
+    var.cvpn_stack_name_suffix
+  ])
   template_body = file("${local.cloudformation_path}/10-minute-aws-client-vpn-prereq.yaml")
 
   region = local.region
@@ -195,7 +201,7 @@ resource "aws_cloudformation_stack" "cvpn_prereq" {
 }
 
 data "aws_iam_role" "cvpn_deploy" {
-  for_each = ["DeploymentRoleName", "OperationRoleName"]
+  for_each = toset(["DeploymentRoleName", "OperationRoleName"])
 
   name = aws_cloudformation_stack.cvpn_prereq.outputs[each.key]
 }

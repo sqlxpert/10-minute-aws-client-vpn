@@ -69,7 +69,7 @@ data "aws_ec2_client_vpn_endpoint" "cvpn" {
 
   region = local.region
   client_vpn_endpoint_id = (
-    data.aws_ssm_parameter.cvpn_client_sec_grp_id[0].insecure_value
+    data.aws_ssm_parameter.cvpn_client_vpn_endpoint_id[0].insecure_value
   )
 }
 
