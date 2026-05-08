@@ -38,7 +38,7 @@ How the template minimizes costs:
     |1 public IPv4 address|0.5¢|40|2,080|$10|
     |_Total_||||**$375**|
 
-    $375 &div; (52&nbsp;weeks &times; 5&nbsp;work&nbsp;days) = $375 &div; 260&nbsp;work&nbsp;days < $1.45&nbsp;per&nbsp;work&nbsp;day.
+    $375 &div; (52&nbsp;weeks &times; 5&nbsp;work&nbsp;days) = $375 &div; 260&nbsp;work&nbsp;days <&nbsp;$1.45&nbsp;per&nbsp;work&nbsp;day.
 
     >[AWS Client VPN prices](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing)
     in the `us-east-1` region were checked in May,&nbsp;2026 but can change
@@ -75,18 +75,14 @@ software was not designed for exposure to the public Internet.
 
 ---
 
-It's exciting that
-[an AWS Client VPN endpoint can be attached to a Transit Gateway](https://aws.amazon.com/about-aws/whats-new/2026/04/aws-client-vpn-transit-gateway)
-for easy access to multiple private AWS networks, as of
-April&nbsp;23,&nbsp;2026.
-
-This template is for use with a single VPC. Direct attachment to one VPC is the
-correct level of complexity for most AWS users, including small, cost-sensitive
-users. This configuration also allows for automatic creation and deletion of
-network route table entries.
-
-A Transit Gateway attachment and the associated routes become permanent
-properties, making temporary VPN shutdowns impractical.
+Since late April,&nbsp;2026, it's been possible to attach an AWS Client VPN to
+a Transit Gateway for easy access to multiple private networks. That's an
+exciting
+[announcement](https://aws.amazon.com/about-aws/whats-new/2026/04/aws-client-vpn-transit-gateway),
+but my 10-minute VPN continues to support direct attachment to a VPC. Not only
+is one VPN, one VPC the right level of complexity for most people, but a
+Transit Gateway attachment and its routes would be long-lived properties,
+making nightly VPN shutdowns impractical.
 
 ---
 
@@ -109,7 +105,7 @@ from the VPC subnet attachment(s).
 
 ## Quick Installation
 
->Before you begin, take a deep breath! Certificate creation is faster than it
+>Before you begin, take a deep breath! Certificate creation goes faster than it
 looks. To avoid errors, read each step completely before doing it. You will
 have to switch between this ReadMe file and AWS's documentation.
 >
@@ -123,15 +119,15 @@ state file, if applicable) afterward, due to the
 
     - &#9888; Check release notes for the version of
       [github.com/OpenVPN/easy-rsa](https://github.com/OpenVPN/easy-rsa/releases)
-      that you will use to create VPN certificates. As of 2026-05-05, the
-      latest release is `v3.2.6` (2026-03-13) and OpenVPN has not enabled
-      immutable releases; a careful release integrity check may be necessary.
-      Also check industry security bulletins.
+      that you will use. As of 2026-05-05, the latest release is `v3.2.6`
+      (2026-03-13) and OpenVPN has not enabled immutable releases; a careful
+      release integrity check is necessary. Also check industry security
+      bulletins.
 
     - Copy the _individual_ Linux/macOS commands and execute them verbatim.
 
     - Copy and edit the
-      [_block_ of commands](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-auth-mutual-enable.html#:~:text=command.-,The%20following,in%20your%20home%20directory.)
+      [block of commands](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-auth-mutual-enable.html#:~:text=command.-,The%20following,in%20your%20home%20directory.)
       before executing them together. Keep `custom_folder` for now (if only
       AWS's technical writers had selected a plausible folder name instead of a
       placeholder!), but after the `mkdir` line, please insert:
@@ -183,9 +179,10 @@ state file, if applicable) afterward, due to the
 
     - **Terraform**
 
-      _Although setting up Terraform is more difficult for new AWS users, the
-      Terraform module makes configuring the VPN easier by looking up details
-      such as the VPC's ID and address range._
+      _Although setting up Terraform itself is more difficult, setting up the
+      VPN with Terraform is easier. Thanks to Terraform data source lookups,
+      you need only double-tag the VPN server certificate and specify a subnet
+      ID!_
 
       Check that you have at least:
 
@@ -206,7 +203,7 @@ state file, if applicable) afterward, due to the
       }
       ```
 
-      Edit the subnet&nbsp;ID to match the ID of a subnet in the desired VPC.
+      Specify the ID of a subnet in the desired VPC.
 
       Have Terraform download the module's source code. Review the plan
       before typing `yes` to allow Terraform to proceed with applying the
@@ -220,8 +217,10 @@ state file, if applicable) afterward, due to the
       &#9888; **Turn on the VPN** by changing the `Enable` parameter of the
       `CVpn` stack to `true` in CloudFormation. The Terraform module leaves
       the VPN off at first and then deliberately ignores changes to
-      `cvpn_params["Enable"]` so that CloudFormation can manage that
-      parameter.
+      `cvpn_params["Enable"]` so that CloudFormation can manage it, potentially
+      [unattended](#automatic-scheduling)
+      and with
+      [limited permissions](#separating-the-vpn-endpoint-from-the-vpc-subnet-attachments).
 
  4. Follow
     [Step&nbsp;8 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config).
@@ -324,10 +323,18 @@ state file, if applicable) afterward, due to the
       _pass_ the role to CloudFormation. See the
       `CVpnPrereq-SampleDeploymentRolePassRolePol` IAM policy for an example.
 
+      If `VpnEndpointAndOrVpcSubnetAssociation` is
+      `VpcSubnetAssociationOnly`&nbsp;, you may use the even-stricter
+      `CVpnPrereq-OperationRole` instead.
+
  2. <a name="automatic-scheduling-step-2"></a>[Install Lights Off](https://github.com/sqlxpert/lights-off-aws#quick-start).
 
- 3. Update your `CVpn` CloudFormation stack, adding the following stack-level
-    tags:
+ 3. If `VpnEndpointAndOrVpcSubnetAssociation` is `VpnEndpointOnly` for your
+    `CVpn` stack, do not tag your `CVpn` stack. Only a `CVpn` stack with
+    `BothVpnEndpointAndVpcSubnetAssociation` or a `CVpnSubnet` stack (always
+    `VpcSubnetAssociationOnly`&nbsp;) should be tagged.
+
+    Update your CloudFormation stack, adding the following stack-level tags:
 
     - `sched-set-Enable-true` : `u=1 u=2 u=3 u=4 u=5 H:M=11:00`
     - `sched-set-Enable-false` : `u=2 u=3 u=4 u=5 u=6 H:M=01:00`
@@ -395,7 +402,8 @@ and each VPC subnet attachment.
 
 Set `VpnEndpointAndOrVpcSubnetAssociation` to `VpnEndpointOnly` for
 the first CloudFormation stack or Terraform module instance. The CloudFormation
-stack is named `CVpn`&nbsp;.
+stack is named `CVpn`&nbsp;. This stack should not have `sched-set-Enable-true`
+and `sched-set-Enable-false` tags.
 
 Or, create the VPN endpoint using any CloudFormation template, Terraform
 module or other system that you like! Creating your own VPN endpoint gives you
@@ -414,7 +422,8 @@ though it doesn't guide you through certificate creation.
 Set `VpnEndpointAndOrVpcSubnetAssociation` to `VpcSubnetAssociationOnly` for
 each additional CloudFormation stack or Terraform module instance. These stacks
 are named `CVpnSubnet1`&nbsp;, `CVpnSubnet2`&nbsp;, and so on. (In Terraform,
-set `cvpn_stack_name_suffix` to `1` or `2`&nbsp;.) Unless you set
+set `cvpn_stack_name_suffix` to `1` or `2`&nbsp;.) These stacks may have
+`sched-set-Enable-true` and `sched-set-Enable-false` tags. Unless you set
 `ExistingEndpointId` directly, each VPC subnet association stack automatically
 references the AWS Systems Manager (SSM) Parameter Store parameter created by
 the VPN endpoint stack. Change `ExistingEndpointStackName` if that stack's name
@@ -429,8 +438,7 @@ cannot be used to create, tag, modify, or delete the VPN endpoint, security
 groups, or any other resource types. In CloudFormation, set
 "IAM role - optional" to `CVpnPrereq-OperationRole` instead of
 `CVpnPrereq-DeploymentRole`&nbsp;. The Terraform module selects the appropriate
-role automatically. `VpnEndpointOnly` CloudFormation stacks or Terraform module
-instances do not need schedule tags.
+role automatically.
 
 Keep in mind that one VPC subnet association grants access to all of the VPC's
 availability zones. Additional subnet associations, each of which must cover a

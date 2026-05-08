@@ -160,10 +160,11 @@ Parameters:
   DnsServerIpv4Addresses:
     Type: List<String>
     Description: >-
-      The IPv4 addresses of domain name servers for VPN clients to use.
-      Separate multiple addresses with commas but no spaces. This is ignored if
-      VpnEndpointAndOrVpcSubnetAssociation is "VpcSubnetAssociationOnly".
+      The IPv4 addresses of up to 2 domain name servers for VPN clients to use.
+      Separate multiple addresses with a comma but no spaces.
       Leave blank to rely on clients' regular DNS servers.
+      DNS server addresses are ignored if VpnEndpointAndOrVpcSubnetAssociation
+      is "VpcSubnetAssociationOnly".
       The Amazon name server is 2 addresses above the start of a VPC's address
       range. For example, if the VPC covers CIDR block 10.0.0.0/16 = 10.0.0.0
       to 10.0.255.255, then the Amazon name server is at 10.0.0.2 .
