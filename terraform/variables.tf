@@ -145,7 +145,7 @@ locals {
 
 variable "cvpn_tags" {
   type        = map(string)
-  description = "Map of tags for CloudFormation stacks. Keys, all optional, are tag keys. Values are tag values. This takes precedence over the Terraform AWS provider's default_tags and over tags attributes defined by the module. To remove tags defined by the module, set the terraform and source tags to null . Do not set the sched-set-Enable-true or sched-set-Enable-false tags here. Warnings: CloudFormation propagates stack tags to stack resources, and each AWS service may have different rules for tag key and tag value lengths, characters, and disallowed tag key or tag value contents. CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed here."
+  description = "Map of tags for CloudFormation stacks. Keys, all optional, are tag keys. Values are tag values. This takes precedence over the Terraform AWS provider's default_tags and over tags attributes defined by the module. To remove tags defined by the module, set the terraform , source , and rights tags to null . Do not set the sched-set-Enable-true or sched-set-Enable-false tags here. Warnings: CloudFormation propagates stack tags to stack resources, and each AWS service may have different rules for tag key and tag value lengths, characters, and disallowed tag key or tag value contents. CloudFormation requires stack tag values to be at least 1 character long; empty tag values are not allowed here."
 
   default = {}
 

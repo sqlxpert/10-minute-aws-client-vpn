@@ -40,12 +40,13 @@ locals {
     local.reference_endpoint && (var.cvpn_params["ExistingEndpointId"] == "")
   )
 
-  stack_name_base  = "CVpn${var.cvpn_stack_name_suffix}"
-  subnet_id_number = trimprefix(var.cvpn_params["TargetSubnetId"], "subnet-")
+  cvpn_endpoint_cloudformation_stack_name = "CVpn${var.cvpn_stack_name_suffix}"
 
-  cvpn_prereq_cloudformation_stack_name = "${local.stack_name_base}Prereq"
+  cvpn_prereq_cloudformation_stack_name = "${local.cvpn_endpoint_cloudformation_stack_name}Prereq"
+
+  subnet_id_number = trimprefix(var.cvpn_params["TargetSubnetId"], "subnet-")
   cvpn_cloudformation_stack_name = join("", [
-    local.stack_name_base,
+    local.cvpn_endpoint_cloudformation_stack_name,
     local.reference_endpoint ? "Subnet${local.subnet_id_number}" : ""
   ])
 

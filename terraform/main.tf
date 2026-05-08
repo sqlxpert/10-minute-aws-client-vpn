@@ -174,7 +174,7 @@ locals {
     },
 
     local.reference_endpoint_stack ? {
-      ExistingEndpointStackName = local.cvpn_cloudformation_stack_name
+      ExistingEndpointStackName = local.cvpn_endpoint_cloudformation_stack_name
     } : {},
 
     local.create_target_net_assoc ? {
