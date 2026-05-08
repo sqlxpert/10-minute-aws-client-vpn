@@ -106,7 +106,22 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       Tags:
-        - { Key: Region, Value: !Ref AWS::Region }
+        - Key: Region
+          Value: !Ref AWS::Region
+        # - { Key: Region, Value: !Ref AWS::Region }
+        # The inline form is valid YAML and CloudFormation accepts it, but the
+        # Terraform AWS provider (v6.44.0) parses it incorrectly.
+        #
+        # Error: "template_body" contains an invalid YAML:
+        # [109:49] value is not allowed in this context. map key-value is
+        # pre-defined
+        # ...
+        #         - { Key: Region, Value: !Ref AWS::Region }
+        #                                                 ^
+        # ... template_body = file("${local.cloudformation_path}/10-minute-aws-client-vpn-prereq.yaml")
+        #
+        # I found one potentially relevant bug report,
+        # https://github.com/hashicorp/terraform-provider-aws/issues/17312
       Description: !Sub >-
         Resources in Client VPN CloudFormation stack: create, update, delete.
         Region: ${AWS::Region}
@@ -394,7 +409,10 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       Tags:
-        - { Key: Region, Value: !Ref AWS::Region }
+        - Key: Region
+          Value: !Ref AWS::Region
+        # - { Key: Region, Value: !Ref AWS::Region }
+        # See DeploymentRole comment
       Description: !Sub >-
         Client VPN endpoint: create, delete associations with VPC subnets.
         SSM Paremeter Store EndpointId parameter from CVpn stack: read.
