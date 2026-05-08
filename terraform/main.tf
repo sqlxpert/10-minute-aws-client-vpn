@@ -29,7 +29,7 @@ data "aws_ssm_parameter" "existing_cvpn_endpoint_id" {
   region = local.region
   name = join("/", [
     var.cvpn_params["SsmParamPath"],
-    var.cvpn_params["ExistingEndpointStackName"],
+    local.cvpn_endpoint_cloudformation_stack_name,
     "EndpointId"
   ])
 }
