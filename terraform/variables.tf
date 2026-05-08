@@ -55,7 +55,7 @@ variable "cvpn_params" {
   validation {
     error_message = "The value of the VpnEndpointAndOrVpcSubnetAssociation map key must be one of: ${local.cvpn_scope_string} ."
 
-    condition = containts(
+    condition = contains(
       local.cvpn_scopes_set,
       var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]
     )
