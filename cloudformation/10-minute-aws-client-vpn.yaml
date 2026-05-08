@@ -606,3 +606,9 @@ Resources:
       # A default AWS::EC2::ClientVpnRoute from this subnet to
       # ClientVpnAuthRule.TargetNetworkCidr = DestinationIpv4CidrBlock
       # is automatically created upon association
+    Metadata:
+      cfn-lint: { config: { ignore_checks: [ W1030 ] } }
+      # TargetSubnetIdRequired rule ensures TargetSubnetId is not blank if it's
+      # needed. Suppress
+      # W1030 {'Ref': 'TargetSubnetId'} is not a 'AWS::EC2::Subnet.Id' with
+      # pattern '^[\\.\\-_\\/#A-Za-z0-9]{1,512}\\Z' when 'Ref' is resolved
