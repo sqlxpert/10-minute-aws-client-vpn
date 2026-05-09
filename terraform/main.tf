@@ -46,8 +46,9 @@ data "aws_ec2_client_vpn_endpoint" "existing_cvpn" {
 
   lifecycle {
     postcondition {
-      condition     = (data.aws_vpc.cvpn.id == self.vpc_id)
-      error_message = "VPC subnet and VPN endpoint must be in same VPC."
+      condition = (data.aws_vpc.cvpn.id == self.vpc_id)
+
+      error_message = "The target VPC subnet is not in ${self.vpc_id} , the VPC of the VPN endpoint."
     }
   }
 }
@@ -69,8 +70,10 @@ data "aws_security_groups" "cvpn_custom_client" {
 
   lifecycle {
     postcondition {
-      condition     = (local.custom_client_security_group_count == length(self))
-      error_message = "One or more custom client security group IDs were not found in the Client VPN endpoint's VPC, ${data.aws_vpc.cvpn.id} ."
+      condition = (local.custom_client_security_group_count == length(self.ids))
+      # https://registry.terraform.io/providers/hashicorp/aws/6.44.0/docs/data-sources/security_groups#ids-1
+
+      error_message = "Custom client security group ID(s) ${join(", ", setsubtract(local.custom_client_security_group_ids_set, toset(self.ids)))} was/were not found in the Client VPN endpoint's VPC, ${data.aws_vpc.cvpn.id} ."
     }
   }
 }
@@ -194,10 +197,9 @@ locals {
 resource "aws_cloudformation_stack" "cvpn_prereq" {
   count = local.reference_endpoint_stack ? 0 : 1
 
+  region        = local.region
   name          = local.cvpn_prereq_cloudformation_stack_name
   template_body = file("${local.cloudformation_path}/10-minute-aws-client-vpn-prereq.yaml")
-
-  region = local.region
 
   capabilities = ["CAPABILITY_IAM"]
   policy_body  = file("${local.cloudformation_path}/10-minute-aws-client-vpn-prereq-policy.json")
@@ -215,7 +217,8 @@ data "aws_iam_role" "cvpn_deploy" {
 data "aws_cloudformation_stack" "existing_cvpn_prereq" {
   count = local.reference_endpoint_stack ? 1 : 0
 
-  name = local.cvpn_prereq_cloudformation_stack_name
+  region = local.region
+  name   = local.cvpn_prereq_cloudformation_stack_name
 }
 data "aws_iam_role" "existing_cvpn_deploy" {
   count = local.reference_endpoint_stack ? 1 : 0
@@ -228,10 +231,9 @@ data "aws_iam_role" "existing_cvpn_deploy" {
 
 
 resource "aws_cloudformation_stack" "cvpn" {
+  region        = local.region
   name          = local.cvpn_cloudformation_stack_name
   template_body = file("${local.cloudformation_path}/10-minute-aws-client-vpn.yaml")
-
-  region = local.region
 
   lifecycle {
     ignore_changes = [
