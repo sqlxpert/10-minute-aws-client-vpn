@@ -55,7 +55,10 @@ variable "cvpn_params" {
   validation {
     error_message = "The value of the VpnEndpointAndOrVpcSubnetAssociation map key is ${local.cvpn_scope} but it must be one of: ${local.cvpn_scopes_string} ."
 
-    condition = contains(local.cvpn_scopes_set, local.cvpn_scope)
+    condition = contains(
+      local.cvpn_scopes_set,
+      var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]
+    )
     # validation processing is not ordered, so repeat this condition hereafter
   }
 
@@ -63,7 +66,10 @@ variable "cvpn_params" {
     error_message = "If you are creating a VPN endpoint only, specify a value for the VpcId map key, and no value for the TargetSubnetId map key."
 
     condition = (
-      contains(local.cvpn_scopes_set, local.cvpn_scope)
+      contains(
+        local.cvpn_scopes_set,
+        var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]
+      )
       && (
         (local.cvpn_scope != "VpnEndpointOnly")
         || (
@@ -77,7 +83,10 @@ variable "cvpn_params" {
     error_message = "If you are creating a VPC subnet association, specify a value for the TargetSubnetId map key, and no value for the VpcId map key. The subnet determines the VPC."
 
     condition = (
-      contains(local.cvpn_scopes_set, local.cvpn_scope)
+      contains(
+        local.cvpn_scopes_set,
+        var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]
+      )
       && (
         (local.cvpn_scope == "VpnEndpointOnly")
         || (
@@ -91,7 +100,10 @@ variable "cvpn_params" {
     error_message = "No more than 2 DNS servers may be specified for an AWS Client VPN endpoint."
 
     condition = (
-      contains(local.cvpn_scopes_set, local.cvpn_scope)
+      contains(
+        local.cvpn_scopes_set,
+        var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]
+      )
       && length(var.cvpn_params["DnsServerIpv4Addresses"]) <= 2
     )
   }
