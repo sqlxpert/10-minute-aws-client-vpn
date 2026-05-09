@@ -5,7 +5,7 @@
 
 variable "cvpn_stack_name_suffix" {
   type        = string
-  description = "Optional CloudFormation stack name suffix, for blue/green deployments or other scenarios in which multiple stacks created from the same template are needed in the same region, in the same AWS account. If cvpn_params[\"VpnEndpointAndOrVpcSubnetAssociation\"] is VpcSubnetAssociationOnly , set this to 1 , 2 , etc. to distinguish VPC subnets attached to the VPC."
+  description = "Optional CloudFormation stack name suffix, for blue/green deployments or other scenarios in which multiple stacks created from the same template are needed in the same region, in the same AWS account."
   default     = ""
 }
 
@@ -71,7 +71,7 @@ variable "cvpn_params" {
   }
 
   validation {
-    error_message = "If you are creating a VPC subnet attachment, specify a value for the TargetSubnetId map key."
+    error_message = "If you are creating a VPC subnet association, specify a value for the TargetSubnetId map key."
 
     condition = (
       (var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"] == "VpnEndpointOnly")
@@ -80,7 +80,7 @@ variable "cvpn_params" {
   }
 
   validation {
-    error_message = "If you are creating a VPC subnet attachment, do not specify a value for the VpcId map key. The subnet determines the VPC."
+    error_message = "If you are creating a VPC subnet association, do not specify a value for the VpcId map key. The subnet determines the VPC."
 
     condition = (
       (var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"] == "VpnEndpointOnly")
