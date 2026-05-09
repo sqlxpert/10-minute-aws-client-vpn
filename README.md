@@ -142,8 +142,8 @@ state file, if applicable) afterward, due to the
     - Uploading the second (client) certificate is completely optional.
 
  2. &#9888; **Tag the VPN certificate(s) if you are using Terraform.**
-    If you are not using a separate client certificate, apply both tags to
-    the _server_ certificate.
+    If you are not using a separate client certificate, apply both tags to the
+    _server_ certificate.
 
     ```shell
     aws acm add-tags-to-certificate --tags 'Key=CVpnServer,Value=' --certificate-arn 'SERVER_CERT_ARN'
@@ -179,10 +179,10 @@ state file, if applicable) afterward, due to the
 
     - **Terraform**
 
-      _Although setting up Terraform itself is more difficult, setting up the
-      VPN with Terraform is easier. Thanks to Terraform data source lookups,
-      you need only double-tag the VPN server certificate and specify a subnet
-      ID!_
+      _Setting up Terraform is more difficult, but setting up the VPN with
+      Terraform is easier than with CloudFormation. Thanks to Terraform data
+      source lookups, you need only double-tag the VPN server certificate and
+      pick a subnet!_
 
       Check that you have at least:
 
@@ -203,11 +203,10 @@ state file, if applicable) afterward, due to the
       }
       ```
 
-      Specify the ID of a subnet in the desired VPC.
+      Just specify the ID of a subnet in the desired VPC.
 
-      Have Terraform download the module's source code. Review the plan
-      before typing `yes` to allow Terraform to proceed with applying the
-      changes.
+      Have Terraform download the module's source code. Review the plan before
+      typing `yes` to allow Terraform to proceed with applying the changes.
 
       ```shell
       terraform init
@@ -419,7 +418,7 @@ doesn't guide you through certificate creation.
 
 Set `VpnEndpointAndOrVpcSubnetAssociation` to `VpcSubnetAssociationOnly` for
 each additional CloudFormation stack or Terraform module instance. These stacks
-are named `CVpn` with distinguishing suffixes. These stacks may have
+are named `CVpn` plus distinguishing suffixes. These stacks may have
 `sched-set-Enable-true` and `sched-set-Enable-false` tags. Unless you set
 `ExistingEndpointId` directly, each VPC subnet association stack automatically
 references the AWS Systems Manager (SSM) Parameter Store parameter created by

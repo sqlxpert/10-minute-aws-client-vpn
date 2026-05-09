@@ -18,7 +18,7 @@ Parameters:
 
   PlaceholderSuggestedStackNamesVpcSubnetAssociationOnly:
     Type: String
-    Default: "CVpnSubnet1,CVpnSubnet2,CVpnSubnet3"
+    Default: "CVpnSubnet1,CVpnSubnet2"
 
   PlaceholderSuggestedStackPolicyBody:
     Type: String
