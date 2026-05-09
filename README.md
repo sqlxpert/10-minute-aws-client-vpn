@@ -54,7 +54,7 @@ How the template minimizes costs:
     </details>
 
 <details>
-  <summary>Rationale for connecting to AWS with a VPN...</summary>
+  <summary>Rationale for connecting to AWS with a VPN</summary>
 
 ---
 
@@ -71,7 +71,7 @@ software was not designed for exposure to the public Internet.
 </details>
 
 <details>
-  <summary>Transit Gateway integration...</summary>
+  <summary>Transit Gateway integration</summary>
 
 ---
 
