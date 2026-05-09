@@ -3,19 +3,17 @@
 ## Goals
 
 This CloudFormation template (+&nbsp;optional Terraform module) helps you set
-up an
+up a complete
 [AWS-managed VPN](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/what-is.html)
 in about 10&nbsp;minutes and operate it for as little as
-$1.45&nbsp;per&nbsp;work&nbsp;day!
+$1.45&nbsp;per&nbsp;work&nbsp;day.
 
 How the template minimizes costs:
 
  1. [Split-tunneling](https://en.wikipedia.org/wiki/Split_tunneling).
     Only AWS private network (VPC) traffic uses the VPN.
-
  2. Reduced redundancy. Access
     [all availability zones in the region through one](https://aws.amazon.com/about-aws/whats-new/2022/04/aws-data-transfer-price-reduction-privatelink-transit-gateway-client-vpn-services).
-
  3. Optional night and weekend shutdowns with
     [github.com/sqlxpert/lights-off-aws](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule)&nbsp;.
 
@@ -29,27 +27,40 @@ How the template minimizes costs:
     |**&darr;&nbsp;Usage / Period&nbsp;&rarr;**|1&nbsp;hour|7&nbsp;days|365&nbsp;days|365&nbsp;days|
     |**Always on:**|||||
     |1&nbsp;VPC&nbsp;subnet&nbsp;associated|10.0¢|168|8,760|$876|
-    |1 VPN client connected|5.0¢|40|2,080|$104|
+    |1 VPN user connected|5.0¢|40|2,080|$104|
     |1 public IPv4 address|0.5¢|40|2,080|$10|
     |_Total_||||$990|
     |**Work hours only:**|||||
     |1 VPC subnet associated|10.0¢|**50**|**2,607**|**$261**|
-    |1 VPN client connected|5.0¢|40|2,080|$104|
+    |1 VPN user connected|5.0¢|40|2,080|$104|
     |1 public IPv4 address|0.5¢|40|2,080|$10|
     |_Total_||||**$375**|
 
     $990 &minus; $375
     = $615
-    &thickapprox; $600 saved per year.
+    &thickapprox; $600 **saved** per year.
 
     $375 &div; (52&nbsp;weeks &times; 5&nbsp;work&nbsp;days)
     = $375 &div; 260&nbsp;work&nbsp;days
-    <&nbsp;$1.45&nbsp;spent&nbsp;per&nbsp;work&nbsp;day.
+    &thickapprox; $1.45&nbsp;**spent**&nbsp;per&nbsp;work&nbsp;day.
+
+    For each additional VPN user who connects full-time, **add** approximately
+    $115&nbsp;per&nbsp;year
+    or
+    $115 &div; 260&nbsp;work&nbsp;days
+    = 45¢&nbsp;per&nbsp;work&nbsp;day.
+
+    For a self-managed VPN server on EC2, **subtract** approximately
+    45¢&nbsp;per&nbsp;work&nbsp;day
+    or
+    45¢ &times; 260&nbsp;work&nbsp;days
+    = $115&nbsp;per&nbsp;year.
 
     Running an m8a.large EC2 instance (2&nbsp;virtual CPUs, 4&nbsp;GB of
-    memory) costs $0.98 per work day -- except that you'd have to configure and
-    monitor the VPN server software and patch the software and the operating
-    system periodically.
+    memory) costs just under $1 per work day, but _you_ configure, monitor and
+    patch the VPN server software and the operating system. Reservations or
+    Savings Plans can't reduce the cost of an 8&nbsp;hour&nbsp;per&nbsp;weekday
+    workload, because they provide an hourly use-it-or-lose it discount.
 
     >[AWS Client VPN prices](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing)
     in the `us-east-1` region were checked in May,&nbsp;2026 but can change
@@ -393,8 +404,9 @@ You can toggle the `Enable` parameter (always in
 never from Terraform) to turn the VPN on and off. This has no effect if
 `VpnEndpointAndOrVpcSubnetAssociation` is `VpnEndpointOnly`&nbsp;.
 
-You can switch between generic and custom VPN client security groups, and
-change the connection log retention period. These settings have no effect if
+You can switch from generic _to_ custom VPN client security groups, change the
+list of custom security group IDS, and change the connection log retention
+period. These settings have no effect if
 `VpnEndpointAndOrVpcSubnetAssociation` is `VpcSubnetAssociationOnly`&nbsp;.
 
 Do not try to change the VPC, the IP address ranges, the name paths, or any

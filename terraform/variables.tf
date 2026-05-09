@@ -59,7 +59,8 @@ variable "cvpn_params" {
       local.cvpn_scopes_set,
       var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]
     )
-    # validation processing is not ordered, so repeat this condition hereafter
+    # Terraform input variable validation processing is not ordered, so this
+    # critical error might not be the one reported.
   }
 
   validation {
