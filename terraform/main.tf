@@ -204,21 +204,25 @@ resource "aws_cloudformation_stack" "cvpn_prereq" {
 
   tags = local.cvpn_tags
 }
+data "aws_iam_role" "cvpn_deploy" {
+  count = local.reference_endpoint_stack ? 0 : 1
 
-data "aws_cloudformation_stack" "cvpn_prereq" {
+  name = aws_cloudformation_stack.cvpn_prereq[0].outputs[
+    local.create_endpoint ? "DeploymentRoleName" : "OperationRoleName"
+  ]
+}
+
+data "aws_cloudformation_stack" "existing_cvpn_prereq" {
   count = local.reference_endpoint_stack ? 1 : 0
 
   name = local.cvpn_prereq_cloudformation_stack_name
 }
+data "aws_iam_role" "existing_cvpn_deploy" {
+  count = local.reference_endpoint_stack ? 1 : 0
 
-data "aws_iam_role" "cvpn_deploy" {
-  for_each = toset(["DeploymentRoleName", "OperationRoleName"])
-
-  name = (
-    local.create_endpoint
-    ? aws_cloudformation_stack.cvpn_prereq[0]
-    : data.aws_cloudformation_stack.cvpn_prereq[0]
-  ).outputs[each.key]
+  name = data.aws_cloudformation_stack.existing_cvpn_prereq[0].outputs[
+    "OperationRoleName"
+  ]
 }
 
 
@@ -237,9 +241,11 @@ resource "aws_cloudformation_stack" "cvpn" {
     ]
   }
 
-  iam_role_arn = data.aws_iam_role.cvpn_deploy[
-    local.reference_endpoint ? "OperationRoleName" : "DeploymentRoleName"
-  ].arn
+  iam_role_arn = (
+    local.reference_endpoint_stack
+    ? data.aws_iam_role.existing_cvpn_deploy
+    : data.aws_iam_role.cvpn_deploy
+  ).arn
   policy_body = (
     local.reference_endpoint_stack
     ? null

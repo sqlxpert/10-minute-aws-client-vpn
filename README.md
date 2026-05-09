@@ -119,7 +119,7 @@ state file, if applicable) afterward, due to the
 
     - &#9888; Check release notes for the version of
       [github.com/OpenVPN/easy-rsa](https://github.com/OpenVPN/easy-rsa/releases)
-      that you will use. As of 2026-05-05, the latest release is `v3.2.6`
+      that you will use. As of 2026-05-08, the latest release is `v3.2.6`
       (2026-03-13) and OpenVPN has not enabled immutable releases; a careful
       release integrity check is necessary. Also check industry security
       bulletins.
@@ -323,10 +323,6 @@ state file, if applicable) afterward, due to the
       _pass_ the role to CloudFormation. See the
       `CVpnPrereq-SampleDeploymentRolePassRolePol` IAM policy for an example.
 
-      If `VpnEndpointAndOrVpcSubnetAssociation` is
-      `VpcSubnetAssociationOnly`&nbsp;, you may use the even-stricter
-      `CVpnPrereq-OperationRole` instead.
-
  2. <a name="automatic-scheduling-step-2"></a>[Install Lights Off](https://github.com/sqlxpert/lights-off-aws#quick-start).
 
  3. If `VpnEndpointAndOrVpcSubnetAssociation` is `VpnEndpointOnly` for your
@@ -440,7 +436,8 @@ create and delete associations between a VPN endpoint and VPC subnets. The role
 cannot be used to create, tag, modify, or delete the VPN endpoint, security
 groups, or any other resource types. In CloudFormation, set
 "IAM role - optional" to `CVpnPrereq-OperationRole` instead of
-`CVpnPrereq-DeploymentRole`&nbsp;. The Terraform module selects the appropriate
+`CVpnPrereq-DeploymentRole` if `VpnEndpointAndOrVpcSubnetAssociation` is
+`VpcSubnetAssociationOnly`&nbsp;. The Terraform module selects the appropriate
 role automatically.
 
 Keep in mind that one VPC subnet association grants access to network resources
