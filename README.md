@@ -100,15 +100,14 @@ rather than a broad private IP address range, in a security group rule; and
 confining a broad egress rule to a separate security group, if you regulate
 ingress but not egress. You can supply custom VPN client security groups.
 >
->For total control over VPN security configuration, you can
-[create the VPN endpoint yourself](#separating-the-vpn-endpoint-from-the-vpc-subnet-attachments)
-and integrate it with this solution.
+>For total control over VPN security configuration, you can create the VPN
+endpoint separately and integrate it with this solution.
 
 ## Quick Installation
 
->Before you begin, take a deep breath! Certificate creation goes faster than it
-looks. To avoid errors, read each step completely before doing it. You will
-have to switch between this ReadMe file and AWS's documentation.
+>Certificate creation goes faster than it looks. To avoid errors, read each
+step completely before doing it. You will have to switch between this ReadMe
+file and AWS's documentation.
 >
 >[AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html)
 works well for setup, but move your certificate authority (and your Terraform
@@ -180,11 +179,6 @@ state file, if applicable) afterward, due to the
 
     - **Terraform**
 
-      _Setting up Terraform is more difficult, but setting up the VPN with
-      Terraform is easier than with CloudFormation. Thanks to Terraform data
-      source lookups, you need only double-tag the VPN server certificate and
-      pick a subnet!_
-
       Check that you have at least:
 
       - [Terraform v1.10.0 (2024-11-27)](https://github.com/hashicorp/terraform/releases/tag/v1.10.0)
@@ -215,9 +209,11 @@ state file, if applicable) afterward, due to the
       ```
 
       &#9888; **Turn on the VPN** by changing the `Enable` parameter of the
-      `CVpn` stack to `true` in CloudFormation. The Terraform module leaves
-      the VPN off at first and then deliberately ignores changes to
-      `cvpn_params["Enable"]` so that CloudFormation can manage it, potentially
+      `CVpn` stack to `true`
+      [in CloudFormation](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringStatus=active&filteringText=CVpn&viewNested=true).
+      The Terraform module leaves the VPN off at first and then deliberately
+      ignores changes to `cvpn_params["Enable"]` so that CloudFormation can
+      manage it, potentially
       [unattended](#automatic-scheduling)
       and with
       [limited permissions](#separating-the-vpn-endpoint-from-the-vpc-subnet-attachments).
