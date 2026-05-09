@@ -59,8 +59,9 @@ How the template minimizes costs:
     Running an m8a.large EC2 instance (2&nbsp;virtual CPUs, 4&nbsp;GB of
     memory) costs just under $1 per work day, but _you_ configure, monitor and
     patch the VPN server software and the operating system. Reservations or
-    Savings Plans can't reduce the cost of an 8&nbsp;hour&nbsp;per&nbsp;weekday
-    workload, because they provide an hourly use-it-or-lose it discount.
+    Savings Plans can't reduce the cost of a workload that runs much less than
+    24&nbsp;hours a day, because they provide
+    [a use-it-or-lose-it discount _every_ hour](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts-reserved-instances-application.html).
 
     >[AWS Client VPN prices](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing)
     in the `us-east-1` region were checked in May,&nbsp;2026 but can change
@@ -77,11 +78,11 @@ How the template minimizes costs:
     </details>
 
 Jump to:
-[Installation](#quick-installation)
+**[Installation](#quick-installation)
 &bull;
 [Scheduling](#automatic-scheduling)
 &bull;
-[Terraform](#terraform-details)
+[Terraform](#terraform-details)**
 
 <details>
   <summary>Rationale for connecting to AWS with a VPN</summary>
@@ -405,7 +406,7 @@ never from Terraform) to turn the VPN on and off. This has no effect if
 `VpnEndpointAndOrVpcSubnetAssociation` is `VpnEndpointOnly`&nbsp;.
 
 You can switch from generic _to_ custom VPN client security groups, change the
-list of custom security group IDS, and change the connection log retention
+list of custom security group IDs, and change the connection log retention
 period. These settings have no effect if
 `VpnEndpointAndOrVpcSubnetAssociation` is `VpcSubnetAssociationOnly`&nbsp;.
 
