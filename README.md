@@ -71,7 +71,7 @@ software was not designed for exposure to the public Internet.
 </details>
 
 <details>
-  <summary>Transit Gateway integration</summary>
+  <summary>Transit Gateway alternative</summary>
 
 ---
 
