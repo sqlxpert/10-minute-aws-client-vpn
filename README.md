@@ -16,7 +16,7 @@ How the template minimizes costs:
  2. Reduced redundancy. Access
     [all availability zones in the region through one](https://aws.amazon.com/about-aws/whats-new/2022/04/aws-data-transfer-price-reduction-privatelink-transit-gateway-client-vpn-services).
 
- 3. Optional night and weekend shutdown with
+ 3. Optional night and weekend shutdowns with
     [github.com/sqlxpert/lights-off-aws](https://github.com/sqlxpert/lights-off-aws#bonus-delete-and-recreate-expensive-resources-on-a-schedule)&nbsp;.
 
     <details>
@@ -38,9 +38,18 @@ How the template minimizes costs:
     |1 public IPv4 address|0.5¢|40|2,080|$10|
     |_Total_||||**$375**|
 
-    $375 &div; (52&nbsp;weeks &times; 5&nbsp;work&nbsp;days) = $375 &div; 260&nbsp;work&nbsp;days <&nbsp;$1.45&nbsp;per&nbsp;work&nbsp;day.
+    $990 &minus; $375
+    = $615
+    &thickapprox; $600 saved per year.
 
-    $990 &minus; $375 = $615 &thickapprox; $600 saved per year.
+    $375 &div; (52&nbsp;weeks &times; 5&nbsp;work&nbsp;days)
+    = $375 &div; 260&nbsp;work&nbsp;days
+    <&nbsp;$1.45&nbsp;spent&nbsp;per&nbsp;work&nbsp;day.
+
+    Running an m8a.large EC2 instance (2&nbsp;virtual CPUs, 4&nbsp;GB of
+    memory) costs $0.98 per work day -- except that you'd have to configure and
+    monitor the VPN server software and patch the software and the operating
+    system periodically.
 
     >[AWS Client VPN prices](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing)
     in the `us-east-1` region were checked in May,&nbsp;2026 but can change
@@ -49,11 +58,19 @@ How the template minimizes costs:
     also apply
     [as of February,&nbsp;2024](https://aws.amazon.com/about-aws/whats-new/2024/02/aws-free-tier-750-hours-free-public-ipv4-addresses).
     If a VPC is shared, some charges are billed to the AWS account that owns
-    the VPC. NAT gateway, data transfer, and other charges may also apply.
+    the VPC. NAT gateway, data transfer, CloudWatch, and other charges may also
+    apply.
 
     ---
 
     </details>
+
+Jump to:
+[Installation](#quick-installation)
+&bull;
+[Scheduling](#automatic-scheduling)
+&bull;
+[Terraform](#terraform-details)
 
 <details>
   <summary>Rationale for connecting to AWS with a VPN</summary>
