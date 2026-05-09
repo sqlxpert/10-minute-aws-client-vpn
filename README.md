@@ -94,12 +94,11 @@ contains no executable code. I made GitHub releases immutable as of `v4.1.2`
 and/or OpenVPN software that you will use to generate certificates and connect.
 >
 >The VPN lets clients with the certificate you specify access the private
-network you specify. Included security groups demonstrate good AWS network
-security practices: allowing traffic from a specific, named security group
-rather than from arbitrary private IP addresses, and confining a broad egress
-rule to a separate security group (if you regulate incoming traffic only). You
-can supply custom VPN client security groups. For additional security options,
-you can create the VPN endpoint separately and integrate it with this solution.
+network you specify. Included security groups demonstrate a critical AWS
+network security practice: allowing traffic from a specific, named security
+group rather than from arbitrary private IP addresses. You can supply custom
+VPN client security groups. For additional security options, you can create the
+VPN endpoint separately and integrate it with this solution.
 
 ## Quick Installation
 
