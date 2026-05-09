@@ -325,12 +325,7 @@ state file, if applicable) afterward, due to the
 
  2. <a name="automatic-scheduling-step-2"></a>[Install Lights Off](https://github.com/sqlxpert/lights-off-aws#quick-start).
 
- 3. If `VpnEndpointAndOrVpcSubnetAssociation` is `VpnEndpointOnly` for your
-    `CVpn` stack, do not tag your `CVpn` stack. Only a `CVpn` stack with
-    `BothVpnEndpointAndVpcSubnetAssociation` or a `CVpnSubnet` stack (always
-    `VpcSubnetAssociationOnly`&nbsp;) should be tagged.
-
-    Update your CloudFormation stack, adding the following stack-level tags:
+ 3. Update your CloudFormation stack, adding the following stack-level tags:
 
     - `sched-set-Enable-true` : `u=1 u=2 u=3 u=4 u=5 H:M=11:00`
     - `sched-set-Enable-false` : `u=2 u=3 u=4 u=5 u=6 H:M=01:00`
