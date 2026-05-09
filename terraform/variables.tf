@@ -53,7 +53,7 @@ variable "cvpn_params" {
   description = "VPN CloudFormation stack parameter map. Keys are parameter names from cloudformation/10-minute-aws-client-vpn.yaml ; parameters are described there. Required key: TargetSubnetId , unless you set VpnEndpointAndOrVpcSubnetAssociation to VpnEndpointOnly , in which case VpcId is required. Do not specify VpcId with TargetSubnetId ; the latter determines the VPC. If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Not allowed: ServerCertificateArn , ClientRootCertificateChainArn , Enable , ExistingEndpointStackName . Certificates are identified by blank CVpnServer and CVpnClientRootChain tags. Enable is managed in CloudFormation. If VpnEndpointAndOrVpcSubnetAssociation is VpcSubnetAssociationOnly and ExistingEndpointId is blank, set cvpn_stack_name_suffix to the same value for all module instances and declare that each subnet association module instance depends_on the VPN endpoint module instance."
 
   validation {
-    error_message = "The value of the VpnEndpointAndOrVpcSubnetAssociation map key is ${local.cvpn_scope} but it must be one of: ${local.cvpn_scopes_string} ."
+    error_message = "The value of the VpnEndpointAndOrVpcSubnetAssociation map key is ${var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]} but it must be one of: ${local.cvpn_scopes_string} ."
 
     condition = contains(
       local.cvpn_scopes_set,
@@ -71,7 +71,7 @@ variable "cvpn_params" {
         var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]
       )
       && (
-        (local.cvpn_scope != "VpnEndpointOnly")
+        (var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"] != "VpnEndpointOnly")
         || (
           (var.cvpn_params["VpcId"] != "")
           && (var.cvpn_params["TargetSubnetId"] == "")
@@ -88,7 +88,7 @@ variable "cvpn_params" {
         var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]
       )
       && (
-        (local.cvpn_scope == "VpnEndpointOnly")
+        (var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"] == "VpnEndpointOnly")
         || (
           (var.cvpn_params["TargetSubnetId"] != "")
           && (var.cvpn_params["VpcId"] == "")
