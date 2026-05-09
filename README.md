@@ -92,16 +92,17 @@ making nightly VPN shutdowns impractical.
 contains no executable code. I made GitHub releases immutable as of `v4.1.2`
 &nbsp;. For security awareness, I provide links to release notes for the AWS
 and/or OpenVPN software that you will use to generate certificates and connect.
+>
 >The VPN grants access to the private AWS network you specify, when a client
-presents the certificate you specify. I demonstrate using a named security
-group reference to allow requests from VPN clients. I also provide an
-all-egress security group that can quickly be removed to stop new requests,
-even if the operator is not familiar with
-[VPN authorization rules](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-authorization.html#auth-rules).
-You can supply custom client security groups. You can customize the
-authorization rules by
-[creating the VPN endpoint yourself, separately](#separating-the-vpn-endpoint-from-the-vpc-subnet-attachments)
-from the VPC subnet attachment(s).
+presents the certificate you specify. This solution demonstrates fundamental
+AWS network security practices: referencing a specific, named security group
+rather than a broad private IP address range, in a security group rule; and
+confining a broad egress rule to a separate security group, if you regulate
+ingress but not egress. You can supply custom VPN client security groups.
+>
+>For total control over VPN security configuration, you can
+[create the VPN endpoint yourself](#separating-the-vpn-endpoint-from-the-vpc-subnet-attachments)
+and integrate it with this solution.
 
 ## Quick Installation
 
