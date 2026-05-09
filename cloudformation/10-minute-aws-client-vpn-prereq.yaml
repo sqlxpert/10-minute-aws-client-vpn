@@ -2,7 +2,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
 Description: |-
-  CloudFormation service role to deploy
+  CloudFormation service roles for
 
   github.com/sqlxpert/10-minute-aws-client-vpn  GPLv3  Copyright Paul Marcelin
 

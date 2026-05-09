@@ -412,8 +412,8 @@ AWS's
 [quick start](https://console.aws.amazon.com/vpcconsole/home#CreateClientVpnEndpoint:createMode=QUICKSTART),
 which was
 [introduced](https://aws.amazon.com/about-aws/whats-new/2026/01/aws-client-vpn-onboarding-quickstart-setup)
-on January&nbsp;7,&nbsp;2026, is quite helpful for configuring Client VPN,
-though it doesn't guide you through certificate creation.
+in January,&nbsp;2026, is quite helpful for configuring Client VPN, though it
+doesn't guide you through certificate creation.
 
 ### VPC Subnet Association Modules and/or Stacks
 
@@ -482,7 +482,7 @@ To accept traffic from VPN clients, reference
 ### Separate Terraform Module Instances
 
 <details>
-  <summary>Separate module instances for VPN endpoint and VPC subnet attachments...</summary>
+  <summary>Separate VPN endpoint and VPC subnet attachment module instances...</summary>
 
 <br/>
 
