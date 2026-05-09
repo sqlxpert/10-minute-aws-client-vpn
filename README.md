@@ -219,7 +219,7 @@ state file, if applicable) afterward, due to the
     [Step&nbsp;8 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config).
 
     - Find your VPN in the list of
-      [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
+      [Client VPN endpoints](https://console.aws.amazon.com/vpcconsole/home#ClientVPNEndpoints:)
       in the AWS Console and download the configuration file from there.
 
     - `cd` to the directory where you downloaded the file and:
