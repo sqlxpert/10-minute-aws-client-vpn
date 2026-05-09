@@ -81,8 +81,8 @@ Parameters:
   ServerCertificateArn:
     Type: String
     Description: >-
-      The TLS certificate for the VPN server. Specify the ARN of an AWS
-      Certificate Manager certificate. This is ignored if
+      The certificate for the VPN server. Specify the ARN of an AWS Certificate
+      Manager certificate. This is ignored if
       VpnEndpointAndOrVpcSubnetAssociation is "VpcSubnetAssociationOnly".
     Default: ""
 
@@ -173,8 +173,8 @@ Parameters:
   ClientRootCertificateChainArn:
     Type: String
     Description: >-
-      The TLS certificate chain for VPN client certificates. Specify the ARN
-      of an AWS Certificate Manager certificate.  This is ignored if
+      The certificate chain for VPN client certificates. Specify the ARN of an
+      AWS Certificate Manager certificate.  This is ignored if
       VpnEndpointAndOrVpcSubnetAssociation is "VpcSubnetAssociationOnly".
       Leave blank to use the server certificate, in which case clients with any
       certificate signed by the same certificate authority (CA) can connect.
@@ -301,7 +301,7 @@ Metadata:
       ClientIpv4CidrBlock:
         default: Client IP address range
       ServerCertificateArn:
-        default: TLS certificate ARN for VPN server
+        default: Certificate ARN for VPN server
       Enable:
         default: Enabled?
       TargetSubnetId:
@@ -317,7 +317,7 @@ Metadata:
       DnsServerIpv4Addresses:
         default: DNS servers
       ClientRootCertificateChainArn:
-        default: TLS certificate ARN for VPN clients
+        default: Certificate ARN for VPN clients
       RetentionInDays:
         default: Retention period (days)
       CloudWatchLogsKmsKey:

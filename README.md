@@ -40,6 +40,8 @@ How the template minimizes costs:
 
     $375 &div; (52&nbsp;weeks &times; 5&nbsp;work&nbsp;days) = $375 &div; 260&nbsp;work&nbsp;days <&nbsp;$1.45&nbsp;per&nbsp;work&nbsp;day.
 
+    $990 &minus; $375 = $615 &thickapprox; $600 saved per year.
+
     >[AWS Client VPN prices](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing)
     in the `us-east-1` region were checked in May,&nbsp;2026 but can change
     at any time.
@@ -108,8 +110,8 @@ file and AWS's documentation.
 >
 >[AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html)
 works well for setup, but move your certificate authority (and your Terraform
-state file, if applicable) afterward, due to the
-[120-day limit](https://docs.aws.amazon.com/cloudshell/latest/userguide/limits.html#:~:text=After%20120%20days,automatically%20deleted).
+state file, if applicable), due to the
+[120-day retention limit](https://docs.aws.amazon.com/cloudshell/latest/userguide/limits.html#:~:text=After%20120%20days,automatically%20deleted).
 
  1. Create the VPN certificate(s) by following AWS's
     [mutual authentication steps](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-auth-mutual-enable.html).
@@ -138,9 +140,10 @@ state file, if applicable) afterward, due to the
 
     - Uploading the second (client) certificate is completely optional.
 
- 2. &#9888; **Tag the VPN certificate(s) if you are using Terraform.**
-    If you are not using a separate client certificate, apply both tags to the
-    _server_ certificate.
+ 2. &#9888; **Tag the VPN
+    [certificate(s)](https://console.aws.amazon.com/acm/certificates/list)
+    if you are using Terraform.** If you are not using a separate client
+    certificate, apply both tags to the _server_ certificate.
 
     ```shell
     aws acm add-tags-to-certificate --tags 'Key=CVpnServer,Value=' --certificate-arn 'SERVER_CERT_ARN'
@@ -206,9 +209,9 @@ state file, if applicable) afterward, due to the
       ```
 
       &#9888; **Turn on the VPN** by changing the `Enable` parameter of the
-      `CVpn` stack to `true`
-      [in CloudFormation](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringStatus=active&filteringText=CVpn&viewNested=true).
-      The Terraform module leaves the VPN off at first and then deliberately
+      `CVpn`
+      [CloudFormation stack](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringStatus=active&filteringText=CVpn&viewNested=true)
+      to `true`. The Terraform module leaves the VPN off at first and then
       ignores changes to `cvpn_params["Enable"]` so that CloudFormation can
       manage it, potentially
       [unattended](#automatic-scheduling)
@@ -228,40 +231,41 @@ state file, if applicable) afterward, due to the
       chmod go= downloaded-client-config.ovpn
       ```
 
-    - Open the file in your preferred editor, copy the skeleton from AWS's
-      instructions and paste it at the end of the file, then replace the text
-      between the tags with the contents of the
-      `~/custom_folder/client1.domain.tld.crt` certificate file and the
-      `~/custom_folder/client1.domain.tld.key` key file.
+    - Open the file in your preferred editor, copy the skeleton from
+      [AWS's instructions](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#:~:text=editor.-,Add,to%20the%20file.)
+      and paste it at the end of the file, then replace the text between the
+      tags with the contents of the
+      `~/custom_folder/client1.domain.tld.crt` certificate and
+      `~/custom_folder/client1.domain.tld.key` key files.
 
     - Rename `~/custom_folder` and note that you must also continue to protect
       `easy-rsa/easyrsa3/pki` and `downloaded-client-config.ovpn`&nbsp;. All
       three contain copies of your key.
 
- 5. Download either the latest
+ 5. Download either the
     [OpenVPN](https://openvpn.net)
     client (Resources &rarr; Download OpenVPN)
-    or
+    or the
     [AWS client](https://aws.amazon.com/vpn/client-vpn-download).
 
-    - &#9888; Check
-      [OpenVPN Connect release notes](https://openvpn.net/connect-docs/release-notes.html)
-      or
-      AWS client release notes
-      ([Linux](https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-linux-release-notes.html)
-      |
-      [macOS](https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-macos-release-notes.html)
-      |
-      [Windows](https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-windows-release-notes.html)),
-      plus relevant industry security bulletins.
+    &#9888; Check
+    [OpenVPN Connect release notes](https://openvpn.net/connect-docs/release-notes.html)
+    or AWS client
+    [Linux](https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-linux-release-notes.html),
+    [macOS](https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-macos-release-notes.html),
+    or
+    [Windows](https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-connect-windows-release-notes.html)
+    release notes, plus relevant industry security bulletins.
 
  6. Import your edited configuration file to the client.
 
  7. Use the client to connect to the VPN.
 
- 8. Add `FromClientSampleSecGrp` to an EC2 instance or, if you do not use SSH,
-    create and add a security group that accepts traffic from VPN clients on
-    the port of your choice.
+ 8. Add `FromClientSampleSecGrp` to an
+    [EC2 instance](https://console.aws.amazon.com/ec2/home#Instances:).
+
+    If you do not use SSH, create and add a security group that accepts traffic
+    from VPN clients on the port of your choice.
 
  9. Test. On your local computer, run:
 
@@ -270,7 +274,7 @@ state file, if applicable) afterward, due to the
     ```
 
     where _PRIVATE_KEY_FILE_ is the path to the private key for the instance's
-    SSH key pair, and _IP_ADDRESS_ is the **private** address of the instance.
+    SSH key pair, and _IP_ADDRESS_ is the instance's **private** IPv4 address.
 
     Different operating system images have different
     [default usernames](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/connection-prereqs-general.html#:~:text=Get%20the%20default%20username);
@@ -281,6 +285,12 @@ state file, if applicable) afterward, due to the
 10. Remove `FromClientSampleSecGrp` (or equivalent) from you EC2 instance.
 
 ## Automatic Scheduling
+
+Turning the VPN off at night and on weekends saves $600 per year. See the table
+in Item&nbsp;3 of the
+[goals](#goals).
+For a VPN needed only on-demand, you could schedule a daily end-of-day shutdown
+or a weekly end-of-week shutdown but no automatic startup.
 
 <details>
   <summary>To turn the VPN on and off on a schedule...</summary>
@@ -303,22 +313,26 @@ state file, if applicable) afterward, due to the
       "Upload a file" and select a locally-saved copy of
       [cloudformation/10-minute-aws-client-vpn-prereq-policy.json](/../../blob/v5.0.0/cloudformation/10-minute-aws-client-vpn-prereq-policy.json?raw=true)
       [right-click to save as...]. The stack policy prevents inadvertent
-      replacement or deletion of the deployment role during stack updates,
+      replacement or deletion of the deployment roles during stack updates,
       but it cannot prevent deletion of the entire `CVpnPrereq` stack.
 
-    - Update your initial `CVpn` stack, changing nothing until the "Configure
-      stack options" page, on which you will set "IAM role - optional" to
-      `CVpnPrereq-DeploymentRole`&nbsp;. You are using a
-      [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
-      to delegate update privileges.
+    - Update your `CVpn`
+      [CloudFormation stack](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringStatus=active&filteringText=CVpn&viewNested=true),
+      changing nothing until you reach the "Configure stack options" page, on
+      which you will set "IAM role - optional" to
+      `CVpnPrereq-DeploymentRole`&nbsp;. You are delegating privileges with a
+      [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html).
 
       If your own privileges are limited, you might need explicit permission to
       _pass_ the role to CloudFormation. See the
-      `CVpnPrereq-SampleDeploymentRolePassRolePol` IAM policy for an example.
+      `CVpnPrereq-SampleDeploymentRolePassRolePol` sample
+      [IAM policy](https://console.aws.amazon.com/iam/home#/policies).
 
  2. <a name="automatic-scheduling-step-2"></a>[Install Lights Off](https://github.com/sqlxpert/lights-off-aws#quick-start).
 
- 3. Update your CloudFormation stack, adding the following stack-level tags:
+ 3. Update your `CVpn`
+    [CloudFormation stack](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringStatus=active&filteringText=CVpn&viewNested=true),
+    adding the following stack-level tags:
 
     - `sched-set-Enable-true` : `u=1 u=2 u=3 u=4 u=5 H:M=11:00`
     - `sched-set-Enable-false` : `u=2 u=3 u=4 u=5 u=6 H:M=01:00`
@@ -326,22 +340,23 @@ state file, if applicable) afterward, due to the
     In Terraform, set the following variable inside your `module` block:
 
     ```terraform
-        cvpn_schedule_tags = {
-          sched-set-Enable-true  = "u=1 u=2 u=3 u=4 u=5 H:M=11:00"
-          sched-set-Enable-false = "u=2 u=3 u=4 u=5 u=6 H:M=01:00"
-        }
+      cvpn_schedule_tags = {
+        sched-set-Enable-true  = "u=1 u=2 u=3 u=4 u=5 H:M=11:00"
+        sched-set-Enable-false = "u=2 u=3 u=4 u=5 u=6 H:M=01:00"
+      }
     ```
 
-    Adjust the weekdays and the times based on your work schedule. This example
-    is suitable for the mainland portions of the United States and Canada.
+    Adjust the weekdays and the times based on your work schedule. The example
+    is for the mainland portions of the United States and Canada.
 
-    - `u=1` is Monday and `u=7` is Sunday, per
+    - `u=1` is Monday and `u=5` is Friday, per
       [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Week_dates).
-    - Times are in Universal Coordinated Time (UTC). This converter may be
-      helpful:
-      [www.timeanddate.com](https://www.timeanddate.com/worldclock/converter.html?iso=20260501T110000&p1=224&p2=250&p3=1440&p4=37&p5=44)&nbsp;.
+    - Times are in Universal Coordinated Time (UTC), which matches the local
+      time in London, England during the winter. The
+      [timeanddate.com](https://www.timeanddate.com/worldclock/converter.html?iso=20260501T110000&p1=224&p2=250&p3=1440&p4=37&p5=44)
+      converter is helpful.
     - UTC has no provision for Daylight Saving Time/Summer Time. Leave a
-      buffer at the end of your work day to avoid having to change schedules.
+      buffer at the end of your work day to avoid having to switch schedules.
 
  4. Find your VPN in the list of
     [Client VPN endpoints](https://console.aws.amazon.com/vpc/home#ClientVPNEndpoints:search=ClientVpnEndpoint)
@@ -356,8 +371,9 @@ state file, if applicable) afterward, due to the
 
 ## Parameter Updates
 
-You can toggle the `Enable` parameter (always in CloudFormation, never from
-Terraform) to turn the VPN on and off. This has no effect if
+You can toggle the `Enable` parameter (always in
+[CloudFormation](https://console.aws.amazon.com/cloudformation/home#/stacks?filteringStatus=active&filteringText=CVpn&viewNested=true),
+never from Terraform) to turn the VPN on and off. This has no effect if
 `VpnEndpointAndOrVpcSubnetAssociation` is `VpnEndpointOnly`&nbsp;.
 
 You can switch between generic and custom VPN client security groups, and
@@ -401,9 +417,9 @@ AWS's
 which was
 [introduced](https://aws.amazon.com/about-aws/whats-new/2026/01/aws-client-vpn-onboarding-quickstart-setup)
 in January,&nbsp;2026, is quite helpful for configuring Client VPN, though it
-doesn't guide you through certificate creation.
+can't guide you through certificate creation.
 
-### VPC Subnet Association Modules and/or Stacks
+### VPC Subnet Association
 
 Set `VpnEndpointAndOrVpcSubnetAssociation` to `VpcSubnetAssociationOnly` for
 each additional CloudFormation stack or Terraform module instance. These stacks
@@ -587,7 +603,7 @@ regulating resource naming and tagging, and then by using:
 Check Service and Resource Control Policies (SCPs and RCPs), as well as
 resource policies (such as KMS key policies).
 
-The deployment roles defined in the `CVpnPrereq` stack gives CloudFormation the
+The deployment roles defined in the `CVpnPrereq` stack give CloudFormation the
 permissions it needs to create the `CVpn` or `CVpnSubnet` stack. Terraform
 itself does not need a deployment role's permissions.
 

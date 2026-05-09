@@ -89,20 +89,10 @@ variable "cvpn_params" {
   }
 
   validation {
-    error_message = "If you are creating a VPC subnet attachment, do not specify a value for the VpcId map key. The subnet determines the VPC."
-
-    condition = (
-      (var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"] == "VpnEndpointOnly")
-      || (var.cvpn_params["VpcId"] == "")
-    )
-  }
-
-  validation {
     error_message = "No more than 2 DNS servers may be specified for an AWS Client VPN endpoint."
 
     condition = length(var.cvpn_params["DnsServerIpv4Addresses"]) <= 2
   }
-
 }
 
 

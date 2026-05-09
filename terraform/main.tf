@@ -40,7 +40,7 @@ data "aws_ec2_client_vpn_endpoint" "existing_cvpn" {
   region = local.region
   client_vpn_endpoint_id = (
     local.reference_endpoint_stack
-    ? data.aws_ssm_parameter.existing_cvpn_endpoint_id[0].value
+    ? data.aws_ssm_parameter.existing_cvpn_endpoint_id[0].insecure_value
     : var.cvpn_params["ExistingEndpointId"]
   )
 
