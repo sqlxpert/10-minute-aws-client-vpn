@@ -117,8 +117,8 @@ state file, if applicable) afterward, due to the
 
     - &#9888; Check release notes for the version of
       [github.com/OpenVPN/easy-rsa](https://github.com/OpenVPN/easy-rsa/releases)
-      that you will use. As of 2026-05-08, the latest release is `v3.2.6`
-      (2026-03-13) and OpenVPN has not enabled immutable releases; a careful
+      that you will use. As of 2026-05-08, the latest release was `v3.2.6`
+      (2026-03-13) and OpenVPN had not enabled immutable releases; a careful
       release integrity check is necessary. Also check industry security
       bulletins.
 
