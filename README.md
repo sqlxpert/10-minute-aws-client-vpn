@@ -273,7 +273,7 @@ state file, if applicable) afterward, due to the
     SSH key pair, and _IP_ADDRESS_ is the **private** address of the instance.
 
     Different operating system images have different
-    [default usernames](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/connection-prereqs-general.html#connection-prereqs-get-info-about-instance);
+    [default usernames](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/connection-prereqs-general.html#:~:text=Get%20the%20default%20username);
     `ec2-user` is not always correct!
 
     If you do not use SSH, run a different command to test VPN connectivity.
