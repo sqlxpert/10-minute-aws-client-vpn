@@ -254,7 +254,7 @@ resource "aws_cloudformation_stack" "cvpn" {
 
   tags = merge(
     local.cvpn_tags,
-    var.cvpn_schedule_tags,
+    local.create_target_net_assoc ? var.cvpn_schedule_tags : {},
   )
 
   parameters = local.cvpn_params
