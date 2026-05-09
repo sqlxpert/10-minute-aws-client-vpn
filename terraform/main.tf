@@ -243,8 +243,8 @@ resource "aws_cloudformation_stack" "cvpn" {
 
   iam_role_arn = (
     local.reference_endpoint_stack
-    ? data.aws_iam_role.existing_cvpn_deploy
-    : data.aws_iam_role.cvpn_deploy
+    ? data.aws_iam_role.existing_cvpn_deploy[0]
+    : data.aws_iam_role.cvpn_deploy[0]
   ).arn
   policy_body = (
     local.reference_endpoint_stack
