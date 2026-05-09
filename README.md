@@ -164,8 +164,8 @@ state file, if applicable) afterward, due to the
 
       - Name the stack `CVpn`&nbsp;.
 
-      - The parameters are thoroughly documented. Set the "Required" ones.
-        Find your VPC in the list of
+      - The parameters are thoroughly documented. Set _all_ "Required" ones.
+        For reference, find your VPC in the list of
         [VPCs](https://console.aws.amazon.com/vpcconsole/home#vpcs:).
 
       - Under "Additional settings" &rarr; "Stack policy - optional", you can
@@ -389,14 +389,16 @@ client utility.
 
 ## Separating the VPN Endpoint from the VPC Subnet Attachments
 
+You can use the Terraform wrapper module and/or the CloudFormation template to
+create a complete AWS Client VPN from scratch, but it's also possible to create
+separate Terraform module instances and/or CloudFormation stacks for the VPN
+endpoint and each VPC subnet attachment. Separation increases flexibility and
+security.
+
 <details>
-  <summary>For extra flexibility and security...</summary>
+  <summary>Separation details...</summary>
 
 <br/>
-
-The CloudFormation template and Terraform module are turn-key products, but
-they also support creation of separate stacks or modules for the VPN endpoint
-and each VPC subnet attachment.
 
 ### VPN Endpoint
 
@@ -421,13 +423,14 @@ though it doesn't guide you through certificate creation.
 
 Set `VpnEndpointAndOrVpcSubnetAssociation` to `VpcSubnetAssociationOnly` for
 each additional CloudFormation stack or Terraform module instance. These stacks
-are named `CVpnSubnet1`&nbsp;, `CVpnSubnet2`&nbsp;, and so on. (In Terraform,
-set `cvpn_stack_name_suffix` to `1` or `2`&nbsp;.) These stacks may have
+are named `CVpn` with distinguishing suffixes. These stacks may have
 `sched-set-Enable-true` and `sched-set-Enable-false` tags. Unless you set
 `ExistingEndpointId` directly, each VPC subnet association stack automatically
 references the AWS Systems Manager (SSM) Parameter Store parameter created by
 the VPN endpoint stack. Change `ExistingEndpointStackName` if that stack's name
-is other than `CVpn`&nbsp;.
+is other than `CVpn`&nbsp;. In Terraform, make sure that all module instances
+share the same `cvpn_stack_name_suffix` value. There is no stack policy, and
+no need for one.
 
 If you configure
 [automatic scheduling](#automatic-scheduling),
@@ -440,11 +443,17 @@ groups, or any other resource types. In CloudFormation, set
 `CVpnPrereq-DeploymentRole`&nbsp;. The Terraform module selects the appropriate
 role automatically.
 
-Keep in mind that one VPC subnet association grants access to all of the VPC's
-availability zones. Additional subnet associations, each of which must cover a
-different availability zone, provide network redundancy at an extra cost. See
-the table in Item&nbsp;3 of the
+Keep in mind that one VPC subnet association grants access to network resources
+in all of the VPC's availability zones. Additional subnet associations, each of
+which must cover a different availability zone, provide network redundancy at
+an extra cost. See the table in Item&nbsp;3 of the
 [goals](#goals).
+
+### Separation in Terraform
+
+See
+[Separate Terraform Module Instances](#separate-terraform-module-instances),
+below.
 
 </details>
 
@@ -472,6 +481,71 @@ To accept traffic from VPN clients, reference
 
 - [`aws_vpc_security_group.`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group).[`ingress`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group#ingress).[`security_groups`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group#security_groups-1)
 - [`aws_vpc_security_group_ingress_rule`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule).[`referenced_security_group_id`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule#referenced_security_group_id-1)
+
+### Separate Terraform Module Instances
+
+<details>
+  <summary>Separate module instances for VPN endpoint and VPC subnet attachments...</summary>
+
+<br/>
+
+As explained above in
+[Separating the VPN Endpoint from the VPC Subnet Attachments](#separating-the-vpn-endpoint-from-the-vpc-subnet-attachments),
+creating separate module instances for the VPN endpoint and each VPC subnet
+attachment increases flexibility and security.
+
+```terraform
+locals {
+  cvpn_stack_name_suffix = "" # Set to "2" for a blue/green VPN deployment
+}
+
+module "cvpn" {
+  source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=v5.0.0"
+  # Reference a specific version from github.com/sqlxpert/10-minute-aws-client-vpn/releases
+  # Check that the release is immutable!
+
+  cvpn_stack_name_suffix = local.cvpn_stack_name_suffix
+  cvpn_params = {
+    VpnEndpointAndOrVpcSubnetAssociation = "VpnEndpointOnly"
+    VpcId                                = "vpc-00123456789abcdef"
+    # Specify VpcId for VpnEndpointOnly, TargetSubnetId otherwise!
+  }
+}
+
+module "cvpn_subnets" {
+  source = "git::https://github.com/sqlxpert/10-minute-aws-client-vpn.git//terraform?ref=v5.0.0"
+  # Reference a specific version from github.com/sqlxpert/10-minute-aws-client-vpn/releases
+  # Check that the release is immutable!
+
+  depends_on = [module.cvpn]
+
+  for_each = {
+    # Key: availability zone ID (same physical zone, across all AWS accounts)
+    usw2-az1 = {
+      TargetSubnetId = "subnet-10123456789abcdef"
+    }
+    usw2-az2 = {
+      TargetSubnetId = "subnet-20123456789abcdef"
+      # Optional:
+      sched-set-Enable-true  = "u=1 u=2 u=3 u=4 u=5 H:M=11:00"
+      sched-set-Enable-false = "u=2 u=3 u=4 u=5 u=6 H:M=01:00"
+    }
+  }
+
+  cvpn_stack_name_suffix = local.cvpn_stack_name_suffix
+  cvpn_params = {
+    VpnEndpointAndOrVpcSubnetAssociation = "VpcSubnetAssociationOnly"
+    TargetSubnetId                       = each.value["TargetSubnetId"]
+  }
+
+  cvpn_schedule_tags = {
+    sched-set-Enable-true  = lookup(each.value, "sched-set-Enable-true", null)
+    sched-set-Enable-false = lookup(each.value, "sched-set-Enable-false", null)
+  } # Optional, and schedules need not be the same for all subnet attachments
+}
+```
+
+</details>
 
 ### Creating Certificates in Terraform
 
