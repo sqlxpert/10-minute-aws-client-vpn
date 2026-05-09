@@ -247,9 +247,9 @@ resource "aws_cloudformation_stack" "cvpn" {
     : data.aws_iam_role.cvpn_deploy[0]
   ).arn
   policy_body = (
-    local.reference_endpoint_stack
-    ? null
-    : file("${local.cloudformation_path}/10-minute-aws-client-vpn-policy.json")
+    local.create_endpoint
+    ? file("${local.cloudformation_path}/10-minute-aws-client-vpn-policy.json")
+    : null
   )
 
   tags = merge(
