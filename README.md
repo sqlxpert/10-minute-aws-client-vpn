@@ -13,7 +13,7 @@ How the template minimizes costs:
  1. [Split-tunneling](https://en.wikipedia.org/wiki/Split_tunneling).
     Only AWS private network (VPC) traffic uses the VPN.
 
- 2. Reduced network redundancy. Access
+ 2. Reduced redundancy. Access
     [all availability zones in the region through one](https://aws.amazon.com/about-aws/whats-new/2022/04/aws-data-transfer-price-reduction-privatelink-transit-gateway-client-vpn-services).
 
  3. Optional night and weekend shutdown with
