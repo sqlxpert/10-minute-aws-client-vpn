@@ -23,7 +23,7 @@ locals {
     "VpnEndpointOnly",
   ])
 
-  cvpn_scope_string = join(", ", local.cvpn_scopes_set)
+  cvpn_scopes_string = join(", ", local.cvpn_scopes_set)
 }
 
 variable "cvpn_params" {
@@ -53,42 +53,47 @@ variable "cvpn_params" {
   description = "VPN CloudFormation stack parameter map. Keys are parameter names from cloudformation/10-minute-aws-client-vpn.yaml ; parameters are described there. Required key: TargetSubnetId , unless you set VpnEndpointAndOrVpcSubnetAssociation to VpnEndpointOnly , in which case VpcId is required. Do not specify VpcId with TargetSubnetId ; the latter determines the VPC. If DestinationIpv4CidrBlock is not specified, the VPC's primary IPv4 CIDR block is used. Not allowed: ServerCertificateArn , ClientRootCertificateChainArn , Enable , ExistingEndpointStackName . Certificates are identified by blank CVpnServer and CVpnClientRootChain tags. Enable is managed in CloudFormation. If VpnEndpointAndOrVpcSubnetAssociation is VpcSubnetAssociationOnly and ExistingEndpointId is blank, set cvpn_stack_name_suffix to the same value for all module instances and declare that each subnet association module instance depends_on the VPN endpoint module instance."
 
   validation {
-    error_message = "The value of the VpnEndpointAndOrVpcSubnetAssociation map key is ${var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]} but it must be one of: ${local.cvpn_scope_string} ."
+    error_message = "The value of the VpnEndpointAndOrVpcSubnetAssociation map key is ${local.cvpn_scope} but it must be one of: ${local.cvpn_scopes_string} ."
 
-    condition = contains(
-      local.cvpn_scopes_set,
-      var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"]
-    )
+    condition = contains(local.cvpn_scopes_set, local.cvpn_scope)
+    # validation processing is not ordered, so repeat this condition hereafter
   }
 
   validation {
     error_message = "If you are creating a VPN endpoint only, specify a value for the VpcId map key, and no value for the TargetSubnetId map key."
 
     condition = (
-      (var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"] != "VpnEndpointOnly")
-      || (
-        (var.cvpn_params["VpcId"] != "")
-        && (var.cvpn_params["TargetSubnetId"] == "")
-      )
-    )
+      contains(local.cvpn_scopes_set, local.cvpn_scope)
+      && (
+        (local.cvpn_scope != "VpnEndpointOnly")
+        || (
+          (var.cvpn_params["VpcId"] != "")
+          && (var.cvpn_params["TargetSubnetId"] == "")
+        )
+    ))
   }
 
   validation {
     error_message = "If you are creating a VPC subnet association, specify a value for the TargetSubnetId map key, and no value for the VpcId map key. The subnet determines the VPC."
 
     condition = (
-      (var.cvpn_params["VpnEndpointAndOrVpcSubnetAssociation"] == "VpnEndpointOnly")
-      || (
-        (var.cvpn_params["TargetSubnetId"] != "")
-        && (var.cvpn_params["VpcId"] == "")
-      )
-    )
+      contains(local.cvpn_scopes_set, local.cvpn_scope)
+      && (
+        (local.cvpn_scope == "VpnEndpointOnly")
+        || (
+          (var.cvpn_params["TargetSubnetId"] != "")
+          && (var.cvpn_params["VpcId"] == "")
+        )
+    ))
   }
 
   validation {
     error_message = "No more than 2 DNS servers may be specified for an AWS Client VPN endpoint."
 
-    condition = length(var.cvpn_params["DnsServerIpv4Addresses"]) <= 2
+    condition = (
+      contains(local.cvpn_scopes_set, local.cvpn_scope)
+      && length(var.cvpn_params["DnsServerIpv4Addresses"]) <= 2
+    )
   }
 }
 
