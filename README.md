@@ -77,13 +77,13 @@ software was not designed for exposure to the public Internet.
 
 ---
 
-Since late April,&nbsp;2026, it's been possible to attach an AWS Client VPN to
-a Transit Gateway for easy access to multiple private networks. That's an
+Since late April,&nbsp;2026, it's been possible to associate an AWS Client VPN
+with a Transit Gateway for easy access to multiple private networks. That's an
 exciting
 [announcement](https://aws.amazon.com/about-aws/whats-new/2026/04/aws-client-vpn-transit-gateway),
-but my 10-minute VPN continues to support direct attachment to a VPC. Not only
-is one VPN, one VPC the right level of complexity for most people, but a
-Transit Gateway attachment and its routes would be long-lived properties,
+but my 10-minute VPN continues to support direct association with a VPC. Not
+only is one VPN, one VPC the right level of complexity for most people, but a
+Transit Gateway association and its routes would be long-lived properties,
 making nightly VPN shutdowns impractical.
 
 ---
@@ -216,7 +216,7 @@ state file, if applicable), due to the
       manage it, potentially
       [unattended](#automatic-scheduling)
       and with
-      [limited permissions](#separating-the-vpn-endpoint-from-the-vpc-subnet-attachments).
+      [limited permissions](#separating-the-vpn-endpoint-from-the-vpc-subnet-associations).
 
  4. Follow
     [Step&nbsp;8 of AWS's Getting Started document](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html#cvpn-getting-started-config).
@@ -387,12 +387,12 @@ other parameters after the `CVpn` stack has been created. Instead, create a
 your client configuration file and re-import the configuration file to your VPN
 client utility.
 
-## Separating the VPN Endpoint from the VPC Subnet Attachments
+## Separating the VPN Endpoint from the VPC Subnet Associations
 
 You can use the Terraform wrapper module and/or the CloudFormation template to
 create a complete AWS Client VPN from scratch, but it's also possible to create
 separate Terraform module instances and/or CloudFormation stacks for the VPN
-endpoint and each VPC subnet attachment. Separation increases flexibility and
+endpoint and each VPC subnet association. Separation increases flexibility and
 security.
 
 <details>
@@ -486,14 +486,14 @@ To accept traffic from VPN clients, reference
 ### Separate Terraform Module Instances
 
 <details>
-  <summary>Separate VPN endpoint and VPC subnet attachment module instances...</summary>
+  <summary>Separate VPN endpoint and VPC subnet association module instances...</summary>
 
 <br/>
 
 As explained above in
-[Separating the VPN Endpoint from the VPC Subnet Attachments](#separating-the-vpn-endpoint-from-the-vpc-subnet-attachments),
+[Separating the VPN Endpoint from the VPC Subnet Associations](#separating-the-vpn-endpoint-from-the-vpc-subnet-associations),
 creating separate module instances for the VPN endpoint and each VPC subnet
-attachment increases flexibility and security.
+association increases flexibility and security.
 
 ```terraform
 locals {
@@ -542,7 +542,7 @@ module "cvpn_subnets" {
   cvpn_schedule_tags = {
     sched-set-Enable-true  = lookup(each.value, "sched-set-Enable-true", null)
     sched-set-Enable-false = lookup(each.value, "sched-set-Enable-false", null)
-  } # Optional, and schedules need not be the same for all subnet attachments
+  } # Optional, and schedules need not be the same for all subnet associations
 }
 ```
 
