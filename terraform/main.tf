@@ -34,6 +34,9 @@ data "aws_ssm_parameter" "existing_cvpn_endpoint_id" {
   ])
 }
 
+# The following data source is for validation only. ExistingEndpointId or
+# ExistingEndpointStackName is passed to CloudFormation via var.cvpn_params .
+# tflint-ignore: terraform_unused_declarations
 data "aws_ec2_client_vpn_endpoint" "existing_cvpn" {
   count = local.reference_endpoint ? 1 : 0
 
