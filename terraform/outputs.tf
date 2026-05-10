@@ -17,7 +17,9 @@
 # dependency-free.
 
 data "aws_ssm_parameter" "cvpn_client_sec_grp_id" {
-  count = 1 - min(local.custom_client_security_group_count, 1)
+  count = (
+    local.create_endpoint && (local.custom_client_security_group_count == 0)
+  ) ? 1 : 0
 
   region = local.region
   name = join("/", [
@@ -28,7 +30,9 @@ data "aws_ssm_parameter" "cvpn_client_sec_grp_id" {
 }
 
 data "aws_security_group" "cvpn_client" {
-  count = 1 - min(local.custom_client_security_group_count, 1)
+  count = (
+    local.create_endpoint && (local.custom_client_security_group_count == 0)
+  ) ? 1 : 0
 
   region = local.region
   id     = data.aws_ssm_parameter.cvpn_client_sec_grp_id[0].insecure_value
