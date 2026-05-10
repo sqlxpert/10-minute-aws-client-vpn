@@ -315,11 +315,11 @@ state file, if applicable), due to the
 
 ## Automatic Scheduling
 
-Turning the VPN off at night and on weekends saves $600 per year. See the table
-in Item&nbsp;3 of the
+Turning the VPN off at night and on weekends and back on at the start of each
+work day saves $600 per year. See the table in Item&nbsp;3 of the
 [goals](#goals).
-For a VPN needed only on-demand, you could schedule a daily end-of-day shutdown
-or a weekly end-of-week shutdown but no automatic startup.
+For a VPN needed strictly on-demand, you could schedule a daily end-of-day
+shutdown or a weekly end-of-week shutdown but no automatic startup.
 
 <details>
   <summary>To turn the VPN on and off on a schedule...</summary>
@@ -405,9 +405,9 @@ You can toggle the `Enable` parameter (always in
 never from Terraform) to turn the VPN on and off. This has no effect if
 `VpnEndpointAndOrVpcSubnetAssociation` is `VpnEndpointOnly`&nbsp;.
 
-You can switch from generic _to_ custom VPN client security groups, change the
-list of custom security group IDs, and change the connection log retention
-period. These settings have no effect if
+You can switch from generic _to_ custom VPN client security groups, change (but
+not empty) the list of custom security group IDs, and change the connection log
+retention period. These settings have no effect if
 `VpnEndpointAndOrVpcSubnetAssociation` is `VpcSubnetAssociationOnly`&nbsp;.
 
 Do not try to change the VPC, the IP address ranges, the name paths, or any
@@ -636,6 +636,97 @@ resource policies (such as KMS key policies).
 The deployment roles defined in the `CVpnPrereq` stack give CloudFormation the
 permissions it needs to create the `CVpn` or `CVpnSubnet` stack. Terraform
 itself does not need a deployment role's permissions.
+
+</details>
+
+### Why Mix Terraform and CloudFormation?
+
+<details>
+  <summary>Getting the best of the two leading IaC systems for AWS...</summary>
+
+<br/>
+
+As an individual open-source developer I get mere seconds of a potential new
+user's attention. To reach everybody, I initially distributed my open-source
+AWS tools as CloudFormation templates. All AWS users have immediate access,
+with no infrastructure-as-code software to install, no Terraform state files to
+store, and no extra permissions (see below) and credentials to worry about.
+
+Because most of my software is multi-region and multi-account, writing
+templates that also work as
+[CloudFormation Stack*Sets*](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-concepts.html#stacksets-concepts-stackset)
+makes deployment from a central region and AWS account to many regions and AWS
+accounts easy for my users. Terraform gained practical
+[multi-region support](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/guides/enhanced-region-support)
+only in v6 of the Terraform AWS provider, released mid-2025. It will be _years_
+before clumsy provider aliases disappear and existing code and third-party
+modules are updated to propagate the `region` attribute so that Terraform users
+can deploy a module with `for_each` over a straightforward set of regions.
+
+As of mid-2026, Terraform still lacks a standard mechanism for deploying to
+multiple AWS accounts. People have been talking about this
+[since at least 2019](https://discuss.hashicorp.com/t/structuring-terraform-for-multi-account-aws-modular-resource-management-with-cross-account-access/77271).
+I could not well expect my users to install Terraform plus third-party
+Terraform tooling, and to adopt a complex file layout, just to install my
+lightweight software in multiple AWS accounts! Instead,
+[I accomplished it](https://github.com/sqlxpert/aws-tag-sched-ops/blob/101efe7/cloudformation/aws_tag_sched_ops_pre_install.yaml)
+with CloudFormation StackSets right after the feature was released,
+[in 2017](https://aws.amazon.com/blogs/mt/aws-cloudformation-2017-in-review)!
+
+Last but not least,
+[CloudFormation service roles](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
+allow for delegation of fine-grained permissions. A property of each
+CloudFormation stack, the service role is recognized by CloudFormation. In this
+VPN solution, a CloudFormation service role makes it possible for cost-bearing
+VPC subnet associations to be deleted and recreated unattended, with no
+infrastructure-as-code software installed.
+
+I added Terraform support to all of my open-source software tools from 2025 to
+2026, to increase adoption. I usually wrap either a CloudFormation stack or
+StackSet in HashiCorp Configuration Language. Where the basis is a third
+language, such as the IAM policy language, I can provide native Terraform
+alongside CloudFormation without too much duplication of effort.
+
+Where Terraform shines is dynamic resource lookups. _My_ CloudFormation wrapper
+modules aren't passive; the Terraform code isn't an afterthought. I add data
+sources to reduce the number of required inputs and to validate the inputs, in
+ways that are not possible out-of-the-box with CloudFormation. (Defining
+[custom CloudFormation resources](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html#how-custom-resources-work)
+should be a last resort. It's a gravy train for unscrupulous consultants. I
+avoid even
+[CloudFormation language transforms](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/transform-aws-languageextensions.html),
+which are AWS's cheap way of grafting-on features that belong in the core
+language. Because they work like pre-processors,
+[CloudFormation language transforms would wreck](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/transform-aws-languageextensions.html#aws-languageextensions-considerations)
+the unattended, low-privilege, low-code, "use existing template" CloudFormation
+stack updates that turn the VPN off and on.)
+
+The Terraform module for the VPN finds certificates by tag and requires only a
+subnet ID, whereas the underlying CloudFormation stack requires many inputs,
+and some of the inputs contain overlapping detail. If we put necessary
+CloudFormation parameters into a database, it would be thoroughly
+de-normalized!
+
+My eventual goal is to call a third-party open-source Terraform module to
+generate self-signed VPN certificates with the correct options -- and perhaps
+to supply the complete VPN client configuration file. (The
+[VPN self-service portal isn't available](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-self-service-portal.html#:~:text=apply:-,The%20self%2Dservice,mutual%20authentication.),
+because I use mutual TLS authentication.) Generating VPN certificates would
+never be possible in CloudFormation, without recourse to an AWS Lambda
+function.
+
+But Terraform is a mismatch for labor-saving AWS capabilities like gradual
+updates in Lambda and Elastic Container Service (ECS), and RDS/Aurora
+blue/green database upgrades. Supporting these kinds of native AWS features
+"would require multiple iterations of editing the Terraform configuration,
+applying the configuration, or importing resources. _A separate tool_ [emphasis
+added] that can manage the orchestration steps would be a better fit"
+([AWS Aurora Blue/Green Update, November&nbsp;24,&nbsp;2023](https://github.com/hashicorp/terraform-provider-aws/issues/28956#issuecomment-1826174309)).
+Why make other people solve the same problem over and over again?
+
+No single tool does everything well. AWS infrastructure-as-code enthusiasts
+should learn both CloudFormation and Terraform/OpenTofu. Take advantage of the
+best of what each of these leading IaC systems has to offer!
 
 </details>
 
