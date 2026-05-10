@@ -51,9 +51,7 @@ locals {
   ])
 
   custom_client_security_group_ids_set = toset(
-    local.create_endpoint
-    ? var.cvpn_params["CustomClientSecGrpIds"]
-    : []
+    local.create_endpoint ? var.cvpn_params["CustomClientSecGrpIds"] : []
   )
   custom_client_security_group_count = length(
     local.custom_client_security_group_ids_set
