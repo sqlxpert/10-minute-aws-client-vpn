@@ -50,19 +50,6 @@ How the template minimizes costs:
     $115 &div; 260&nbsp;work&nbsp;days
     = 45¢&nbsp;per&nbsp;work&nbsp;day.
 
-    For a self-managed VPN server on EC2, **subtract** approximately
-    45¢&nbsp;per&nbsp;work&nbsp;day
-    or
-    45¢ &times; 260&nbsp;work&nbsp;days
-    = $115&nbsp;per&nbsp;year.
-
-    Running an m8a.large EC2 instance (2&nbsp;virtual CPUs, 4&nbsp;GB of
-    memory) costs just under $1 per work day, but _you_ configure, monitor and
-    patch the VPN server software and the operating system. Reservations or
-    Savings Plans can't reduce the cost of a workload that runs much less than
-    24&nbsp;hours a day, because they provide
-    [a use-it-or-lose-it discount _every_ hour](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts-reserved-instances-application.html).
-
     >[AWS Client VPN prices](https://aws.amazon.com/vpn/pricing/#AWS_Client_VPN_pricing)
     in the `us-east-1` region were checked in May,&nbsp;2026 but can change
     at any time.
@@ -120,22 +107,22 @@ making nightly VPN shutdowns impractical.
 </details>
 
 >&#128274; Software supply chain security is on everyone's mind. This solution
-contains no executable code. I made GitHub releases immutable as of `v4.1.2`
-&nbsp;. For security awareness, I provide links to release notes for the AWS
-and/or OpenVPN software that you will use to generate certificates and connect.
+contains no executable code. I made GitHub releases immutable as of
+`v4.1.2`&nbsp;. For security awareness, I provide links to release notes for
+the software you'll use to generate certificates and connect.
 >
 >The VPN lets clients with the certificate you specify access the private
 network you specify. The included security group pair demonstrates a critical
 AWS network security practice: allowing traffic from a specific, named security
 group rather than from arbitrary private IP addresses. You can supply custom
-VPN client security groups. For additional security options, you can create the
-VPN endpoint separately and integrate it with this solution.
+security groups. For additional security options, you can create the VPN
+endpoint separately and integrate it with this solution.
 
 ## Quick Installation
 
->Certificate creation goes faster than it looks. To avoid errors, read each
-step completely before doing it. You will have to switch between this ReadMe
-file and AWS's documentation.
+>Certificate creation is faster than it looks. To avoid errors, read each step
+completely before doing it. You will have to switch between this ReadMe file
+and AWS's documentation.
 >
 >[AWS CloudShell](https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html)
 works well for setup, but move your certificate authority (and your Terraform
@@ -156,9 +143,9 @@ state file, if applicable), due to the
 
     - Copy and edit the
       [block of commands](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-auth-mutual-enable.html#:~:text=command.-,The%20following,in%20your%20home%20directory.)
-      before executing them together. Keep `custom_folder` for now (if only
-      AWS's technical writers had selected a plausible folder name instead of a
-      placeholder!), but after the `mkdir` line, please insert:
+      before executing them together. If only AWS's technical writers had
+      chosen a plausible folder name instead of a placeholder! Keep
+      `custom_folder` for now, but after the `mkdir` line, insert:
 
       ```shell
       chmod go= ~/custom_folder
