@@ -4,6 +4,8 @@
 
 
 data "aws_subnet" "cvpn_target" {
+  count = local.create_target_net_assoc ? 1 : 0
+
   region = local.region
   id     = var.cvpn_params["TargetSubnetId"]
   state  = "available"
@@ -11,30 +13,53 @@ data "aws_subnet" "cvpn_target" {
 
 data "aws_vpc" "cvpn" {
   region = local.region
-  id     = data.aws_subnet.cvpn_target.vpc_id
-  state  = "available"
+  id = (
+    local.create_target_net_assoc
+    ? data.aws_subnet.cvpn_target[0].vpc_id
+    : var.cvpn_params["VpcId"]
+  )
+  state = "available"
 }
 
-data "aws_subnet" "cvpn_vpc_backup_target" {
-  count = var.cvpn_params["BackupTargetSubnetId"] == "" ? 0 : 1
+
+
+data "aws_ssm_parameter" "existing_cvpn_endpoint_id" {
+  count = local.reference_endpoint_stack ? 1 : 0
 
   region = local.region
-  vpc_id = data.aws_vpc.cvpn.id
-  id     = var.cvpn_params["BackupTargetSubnetId"]
-  state  = "available"
+  name = join("/", [
+    var.cvpn_params["SsmParamPath"],
+    local.cvpn_endpoint_cloudformation_stack_name,
+    "EndpointId"
+  ])
+}
+
+# The following data source is for validation only. ExistingEndpointId or
+# ExistingEndpointStackName is passed to CloudFormation via var.cvpn_params .
+# tflint-ignore: terraform_unused_declarations
+data "aws_ec2_client_vpn_endpoint" "existing_cvpn" {
+  count = local.reference_endpoint ? 1 : 0
+
+  region = local.region
+  client_vpn_endpoint_id = (
+    local.reference_endpoint_stack
+    ? data.aws_ssm_parameter.existing_cvpn_endpoint_id[0].insecure_value
+    : var.cvpn_params["ExistingEndpointId"]
+  )
 
   lifecycle {
     postcondition {
-      condition = (
-        data.aws_subnet.cvpn_target.availability_zone != self.availability_zone
-      )
-      error_message = "1st and optional 2nd (backup) subnets must cover different availability zones."
+      condition = (data.aws_vpc.cvpn.id == self.vpc_id)
+
+      error_message = "The target VPC subnet is not in ${self.vpc_id} , the VPC of the VPN endpoint."
     }
   }
 }
 
+
+
 data "aws_security_groups" "cvpn_custom_client" {
-  count = min(length(var.cvpn_params["CustomClientSecGrpIds"]), 1)
+  count = min(local.custom_client_security_group_count, 1)
 
   region = local.region
   filter {
@@ -43,7 +68,16 @@ data "aws_security_groups" "cvpn_custom_client" {
   }
   filter {
     name   = "group-id"
-    values = var.cvpn_params["CustomClientSecGrpIds"] # Already a list
+    values = local.custom_client_security_group_ids_set
+  }
+
+  lifecycle {
+    postcondition {
+      condition = (local.custom_client_security_group_count == length(self.ids))
+      # https://registry.terraform.io/providers/hashicorp/aws/6.44.0/docs/data-sources/security_groups#ids-1
+
+      error_message = "Custom client security group ID(s) ${join(", ", setsubtract(local.custom_client_security_group_ids_set, toset(self.ids)))} was/were not found in the Client VPN endpoint's VPC, ${data.aws_vpc.cvpn.id} ."
+    }
   }
 }
 
@@ -61,9 +95,9 @@ data "aws_acm_certificate" "cvpn_server" {
   most_recent = true
 }
 
-# To use the server certificate, so that a client with any certificate from the
-# same certificate authority (CA) can connect, tag it with BOTH CVpnServer AND
-# CVpnClientRootChain .
+# To use the server certificate, so that a client with any certificate signed
+# by the same certificate authority (CA) can connect, tag it with BOTH
+# CVpnServer AND CVpnClientRootChain .
 data "aws_acm_certificate" "cvpn_client_root_chain" {
   count = contains(
     keys(data.aws_acm_certificate.cvpn_server.tags),
@@ -99,20 +133,20 @@ data "aws_kms_key" "cvpn_cloudwatch_logs" {
 
 locals {
   cvpn_params = merge(
+
     var.cvpn_params,
-    {
-      Enable = tostring(false)
-      # Do not associate the virtual private network (VPN) with the virtual
-      # private cloud (VPC) when Terraform creates the CloudFormation stack. AWS
-      # charges while the association is present, even if no VPN user connects.
+
+    local.create_endpoint
+    ? {
 
       VpcId = data.aws_vpc.cvpn.id
 
-      TargetSubnetId = data.aws_subnet.cvpn_target.id
-      BackupTargetSubnetId = try(
-        data.aws_subnet.cvpn_vpc_backup_target[0].id,
-        ""
+      DestinationIpv4CidrBlock = coalesce(
+        var.cvpn_params["DestinationIpv4CidrBlock"],
+        data.aws_vpc.cvpn.cidr_block
       )
+
+      ServerCertificateArn = data.aws_acm_certificate.cvpn_server.arn
 
       # Terraform won't automatically convert HCL list(string) to
       # CloudFormation List<String> !
@@ -121,13 +155,10 @@ locals {
       CustomClientSecGrpIds = join(",",
         try(sort(data.aws_security_groups.cvpn_custom_client[0].ids), [])
       )
-
-      DestinationIpv4CidrBlock = coalesce(
-        var.cvpn_params["DestinationIpv4CidrBlock"],
-        data.aws_vpc.cvpn.cidr_block
+      DnsServerIpv4Addresses = join(",",
+        sort(toset(var.cvpn_params["DnsServerIpv4Addresses"]))
       )
 
-      ServerCertificateArn = data.aws_acm_certificate.cvpn_server.arn
       ClientRootCertificateChainArn = try(
         data.aws_acm_certificate.cvpn_client_root_chain[0].arn,
         ""
@@ -141,34 +172,71 @@ locals {
         ""
       )
     }
+    : { # !local.create_endpoint
+
+      # Need strings, empty in this case, for CloudFormation; see above.
+      CustomClientSecGrpIds  = ""
+      DnsServerIpv4Addresses = ""
+    },
+
+    local.reference_endpoint_stack ? {
+      ExistingEndpointStackName = local.cvpn_endpoint_cloudformation_stack_name
+    } : {},
+
+    local.create_target_net_assoc ? {
+      Enable = tostring(false)
+      # Do not associate the virtual private network (VPN) with the virtual
+      # private cloud (VPC) when Terraform creates the CloudFormation stack.
+      # AWS charges while the association is present, even if no VPN user
+      # connects.
+
+      TargetSubnetId = data.aws_subnet.cvpn_target[0].id
+    } : {},
   )
 }
 
 
 
 resource "aws_cloudformation_stack" "cvpn_prereq" {
-  name          = "CVpnPrereq${var.cvpn_stack_name_suffix}"
-  template_body = file("${local.cloudformation_path}/10-minute-aws-client-vpn-prereq.yaml")
+  count = local.reference_endpoint_stack ? 0 : 1
 
-  region = local.region
+  region        = local.region
+  name          = local.cvpn_prereq_cloudformation_stack_name
+  template_body = file("${local.cloudformation_path}/10-minute-aws-client-vpn-prereq.yaml")
 
   capabilities = ["CAPABILITY_IAM"]
   policy_body  = file("${local.cloudformation_path}/10-minute-aws-client-vpn-prereq-policy.json")
 
   tags = local.cvpn_tags
 }
-
 data "aws_iam_role" "cvpn_deploy" {
-  name = aws_cloudformation_stack.cvpn_prereq.outputs["DeploymentRoleName"]
+  count = local.reference_endpoint_stack ? 0 : 1
+
+  name = aws_cloudformation_stack.cvpn_prereq[0].outputs[
+    local.create_endpoint ? "DeploymentRoleName" : "OperationRoleName"
+  ]
+}
+
+data "aws_cloudformation_stack" "existing_cvpn_prereq" {
+  count = local.reference_endpoint_stack ? 1 : 0
+
+  region = local.region
+  name   = local.cvpn_prereq_cloudformation_stack_name
+}
+data "aws_iam_role" "existing_cvpn_deploy" {
+  count = local.reference_endpoint_stack ? 1 : 0
+
+  name = data.aws_cloudformation_stack.existing_cvpn_prereq[0].outputs[
+    "OperationRoleName"
+  ]
 }
 
 
 
 resource "aws_cloudformation_stack" "cvpn" {
-  name          = "CVpn${var.cvpn_stack_name_suffix}"
+  region        = local.region
+  name          = local.cvpn_cloudformation_stack_name
   template_body = file("${local.cloudformation_path}/10-minute-aws-client-vpn.yaml")
-
-  region = local.region
 
   lifecycle {
     ignore_changes = [
@@ -178,12 +246,20 @@ resource "aws_cloudformation_stack" "cvpn" {
     ]
   }
 
-  iam_role_arn = data.aws_iam_role.cvpn_deploy.arn
-  policy_body  = file("${local.cloudformation_path}/10-minute-aws-client-vpn-policy.json")
+  iam_role_arn = (
+    local.reference_endpoint_stack
+    ? data.aws_iam_role.existing_cvpn_deploy[0]
+    : data.aws_iam_role.cvpn_deploy[0]
+  ).arn
+  policy_body = (
+    local.create_endpoint
+    ? file("${local.cloudformation_path}/10-minute-aws-client-vpn-policy.json")
+    : null
+  )
 
   tags = merge(
     local.cvpn_tags,
-    var.cvpn_schedule_tags,
+    local.create_target_net_assoc ? var.cvpn_schedule_tags : {},
   )
 
   parameters = local.cvpn_params
