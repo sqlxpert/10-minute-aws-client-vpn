@@ -475,7 +475,8 @@ Resources:
     Condition: CreateSecGrps
     Properties:
       GroupDescription: !Sub >-
-        Server for ${AWS::StackName} clients
+        Demonstration. For a server that accepts requests from
+        ${AWS::StackName} clients.
       VpcId: !Ref VpcId
       SecurityGroupEgress:
         - Description: >-
