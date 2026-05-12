@@ -690,7 +690,7 @@ stack updates that turn the VPN off and on.)
 
 The Terraform module for the VPN finds certificates by tag and requires only a
 subnet ID, whereas the underlying CloudFormation stack requires many inputs,
-and some of the inputs contain overlapping detail. If we put necessary
+and some of the inputs contain overlapping details. If we put necessary
 CloudFormation parameters into a database, it would be thoroughly
 de-normalized!
 
