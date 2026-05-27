@@ -300,6 +300,22 @@ state file, if applicable), due to the
 
 10. Remove `FromClientSampleSecGrp` (or equivalent) from you EC2 instance.
 
+>&#9888; Do not routinely configure an SSH key for an EC2 instance or an ECS
+container.
+I suggest SSH as a VPN testing mechanism, because SSH is simple,
+well-understood, and commonplace.
+Use AWS Systems Manager (SSM)
+[Session Manager](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager.html)
+and
+[ECS Exec](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-exec.html)
+to routinely connect to EC2 instances and ECS containers.
+To keep this network traffic completely off the public Internet, configure an
+AWS PrivateLink
+[VPC endpoint for Systems Manager](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-getting-started-privatelink.html).
+Thank you to my fellow AWS Community Builder
+[Aju Tamang](https://builder.aws.com/community/@csaju)
+for this reminder.
+
 ## Automatic Scheduling
 
 Turning the VPN off at night and on weekends and back on at the start of each
